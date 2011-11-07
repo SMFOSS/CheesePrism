@@ -6,7 +6,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
-requires = ['pyramid', 'pyramid_debugtoolbar']
+requires=['pyramid>=1.0a10', 'pyramid_jinja2', 'WebError']
 
 setup(name='CheesePrism',
       version='0.0',
@@ -34,4 +34,3 @@ setup(name='CheesePrism',
       """,
       paster_plugins=['pyramid'],
       )
-
