@@ -8,9 +8,9 @@ CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires = ['pyramid', 'pyramid_debugtoolbar']
 
-setup(name='CheesePyramid',
+setup(name='CheesePrism',
       version='0.0',
-      description='CheesePyramid',
+      description='CheesePrism',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Programming Language :: Python",
@@ -27,10 +27,10 @@ setup(name='CheesePyramid',
       zip_safe=False,
       install_requires=requires,
       tests_require=requires,
-      test_suite="cheesepyramid",
+      test_suite="cheeseprism",
       entry_points = """\
       [paste.app_factory]
-      main = cheesepyramid:main
+      main = cheeseprism:main
       """,
       paster_plugins=['pyramid'],
       )
