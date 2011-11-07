@@ -1,6 +1,9 @@
+#from pyramid_jinja2 import renderer_factory
+from cheeseprism.resources import App
 from pyramid.config import Configurator
-from pyramid_jinja2 import renderer_factory
-from cheeseprism.models import get_root
+from pyramid.decorator import reify
+from pyramid.request import Request
+
 
 def main(global_config, **settings):
     """ This function returns a WSGI application.
@@ -11,13 +14,28 @@ def main(global_config, **settings):
     settings = dict(settings)
     settings.setdefault('jinja2.i18n.domain', 'CheesePrism')
 
-    config = Configurator(root_factory=get_root, settings=settings)
+    config = Configurator(root_factory=App, settings=settings)
     config.add_translation_dirs('locale/')
-    config.include('pyramid_jinja2')
+    config.include('pyramid_jinja2')    
+    #config.add_renderer('.html', renderer_factory)
 
     config.add_static_view('static', 'static')
-    config.add_view('cheeseprism.views.my_view',
-                    context='cheeseprism.models.MyModel', 
-                    renderer="mytemplate.jinja2")
-
+    config.scan('cheeseprism.views')    
+    config.set_request_factory(CPRequest)
     return config.make_wsgi_app()
+
+
+class CPRequest(Request):
+    """
+    Custom CheesePrism request object
+    """
+
+    @reify
+    def settings(self):
+        return self.registry.settings
+
+    @reify
+    def file_root(self):
+        return self.registry.settings['file_root']    
+
+

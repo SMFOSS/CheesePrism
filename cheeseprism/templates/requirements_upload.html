@@ -1,0 +1,9 @@
+{%extends "base.html"%}
+{%block content%}
+<p>Please upload a requirements file</p>
+<form method='POST' enctype='multipart/form-data' action='/requirements'> 
+File to upload: <input type='file' name='req_file'><br> 
+<br> 
+<input type='submit' value='Press'> to upload the file!
+</form>
+{%endblock%}

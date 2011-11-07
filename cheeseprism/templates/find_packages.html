@@ -1,0 +1,18 @@
+{%extends "base.html"%}
+{% block content%}
+<p>For now the package must be exact</p>
+<form action='/search' method="POST">
+	<input type='text' name='search_box'/>
+	<br />
+	<input type='submit'>
+</form>
+
+{%if releases%}
+	<h2>Click on release to download</h2>
+	<ul>
+	{% for r in releases %}
+		<li><a href='/package/{{search_term}}/{{r}}'>{{r}}</a></li>
+	{% endfor %}
+	</ul>
+{%endif%}
+{% endblock %}

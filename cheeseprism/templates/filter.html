@@ -1,0 +1,37 @@
+{%extends "base.html"%}
+{%block js%}
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type="text/javascript">
+$(function(){
+	$('input').change(function(){
+		var filter = $(this).val();
+		if(filter && filter.length > 3){
+			$("a:contains('"+filter+"')").each(function(index){
+				$(this).parent().show();
+			});
+			//$("li[a:contains('"+filter+"')]").each(function(index){
+			//	$(this).parent().show();
+			//});
+			//$('#list').find("a:not(:contains(" + filter + "))").parent().hide();
+			//$('#list').find("a:contains(" + filter + ")").parent().show();
+		} else if(filter && filter.length < 3){
+			//
+		} else{
+			$('#list').find("li").hide();
+		}
+	}).keyup(function(){
+		$(this).change();
+	});
+});
+</script>
+{%endblock%}
+
+{%block content%}
+<h1>List of Packages</h1>
+<input type='text' class='filterinput'/>
+<ul id="list">
+	{%for package in packages%}
+	<li><a href='/package/{{package}}'>{{package}}</li>
+	{%endfor%}
+</ul>
+{%endblock%}
