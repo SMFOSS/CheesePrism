@@ -2,7 +2,7 @@ from cheeseprism import pipext
 from cheeseprism import resources
 from cheeseprism import utils
 from path import path
-from pyramid.exceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n import TranslationStringFactory
 from pyramid.view import view_config
 from werkzeug import secure_filename
@@ -11,7 +11,7 @@ import tempfile
 _ = TranslationStringFactory('CheesePrism')
 
 
-@view_config(renderer='index.html', context=resources.App)
+@view_config(renderer='instructions.html', context=resources.App)
 def index(context, request):
     return {}
 

@@ -18,6 +18,7 @@
 			<div class="bodywrapper"> 
 				<div class="body"> 
 					<div class="section" id="flask-themes"> 
+                                          {#
 						{% with messages = get_flashed_messages() %}
 						  {% if messages %}
 							<div class='note'>
@@ -29,6 +30,7 @@
 							</div>
 						  {% endif %}
 						{% endwith %}
+                                           #}
 						
 						{%block content%}
 						{%endblock%}

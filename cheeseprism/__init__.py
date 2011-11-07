@@ -1,8 +1,8 @@
-#from pyramid_jinja2 import renderer_factory
 from cheeseprism.resources import App
 from pyramid.config import Configurator
 from pyramid.decorator import reify
 from pyramid.request import Request
+from pyramid_jinja2 import renderer_factory
 
 
 def main(global_config, **settings):
@@ -17,7 +17,7 @@ def main(global_config, **settings):
     config = Configurator(root_factory=App, settings=settings)
     config.add_translation_dirs('locale/')
     config.include('pyramid_jinja2')    
-    #config.add_renderer('.html', renderer_factory)
+    config.add_renderer('.html', renderer_factory)
 
     config.add_static_view('static', 'static')
     config.scan('cheeseprism.views')    
