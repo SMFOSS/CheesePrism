@@ -107,7 +107,6 @@ def _extract_name_version(filename, tempdir):
         import traceback
         print traceback.format_exc()
     return
-
         
 def regenerate_index(indexpath, filename):
     print "Regenerate index"

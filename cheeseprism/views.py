@@ -11,14 +11,18 @@ import tempfile
 _ = TranslationStringFactory('CheesePrism')
 
 
-@view_config(renderer='instructions.html', context=resources.App)
+@view_config(name='instructions', renderer='instructions.html', context=resources.App)
 def index(context, request):
-    return {}
+    return {'page': 'instructions'}
 
 
 @view_config(name='simple', renderer='index.html', context=resources.App)
 def upload(context, request):
-    f = request.files['content']
+    if not (hasattr(request.POST['content'], 'file')):
+        raise RuntimeError('No file attached') 
+
+    ##TODO: check out body_file attribute of request
+    f = request.POST['content']
     f.save(path(request.file_root) / secure_filename(f.filename))
     utils.regenerate_index(request.file_root, 'index.html')
     response = request.get_response()
@@ -74,9 +78,12 @@ def regenerate(context, request):
         return HTTPFound('/index')
     return {}
 
+#tag_build = dev
+#tag_svn_revision = true
+
 
 def flash(msg):
-    raise NotImplementedError
+    session.flash(msg)
 
 #@app.route('/requirements', methods=['POST','GET'])
 @view_config(name='requirements', renderer='requirements_upload.html', context=resources.App)
