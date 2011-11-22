@@ -1,11 +1,7 @@
-0.0
----
+2011-11-07  whit  <whit@JATO3-3.local>
 
- * Initial version
+	* Get app basically serving
 
-	
-0.1
----
 	
 2011-11-07  whit  <whit@surveymonkey.com>
 
