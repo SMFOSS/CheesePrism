@@ -1,41 +1,11 @@
 import unittest
-from pyramid import testing
 from pyramid.i18n import TranslationStringFactory
-from __init__ import get_app
-from indexer import PackageRoot
+from cheeseprism.indexer import PackageRoot
 import tempfile
 import os
-import settings
+import cheeseprism.settings as settings
 
 _ = TranslationStringFactory('cheeseprism')
-
-class ViewTests(unittest.TestCase):
-
-    def setUp(self):
-        testing.setUp()
-        self.App = get_app({})
-
-    def tearDown(self):
-        testing.tearDown()
-
-    def test_search_view(self):
-        from cheeseprism.views import find_packages
-        request = testing.DummyRequest()
-
-        request.POST['releases'] = 'pyramid'
-        response = find_packages(self.App, request)
-        self.assertNotEqual(None, response['releases'])
-        self.assertEqual(len(response['releases']), 1)
-
-    def test_index_view(self):
-        from cheeseprism.views import index
-        request = testing.DummyRequest()
-
-        response = index(self.App, request)
-        self.assertEqual(response['page'], 'instructions')
-
-    def test_regenerate(self):
-        raise NotImplementedError
 
 class PackageRootTest(unittest.TestCase):
 
@@ -85,3 +55,23 @@ class PackageRootTest(unittest.TestCase):
         result = p.load()
         self.assertTrue('dookie' in result)
         self.assertTrue('burger' in result)
+
+    def test_remove_node(self):
+        packages = ['dookie', 'burger']
+        dir = tempfile.mkdtemp()
+        p = PackageRoot(dir)
+        p._write_yaml(packages, dir)
+        result = p.load()
+        p.remove_node('dookie')
+        self.assertFalse('dookie' in result)
+
+    def test_save(self):
+        dir = tempfile.mkdtemp()
+        p = PackageRoot(dir)
+        p.add_node('burt')
+        p.add_node('renolds')
+        p.add_node('rules')
+        p.save()
+        self.assertTrue(os.path.exists(dir))
+        result = p.load()
+        self.assertTrue('rules' in result)

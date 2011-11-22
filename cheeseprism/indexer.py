@@ -29,9 +29,9 @@ class PackageRoot(object):
             return None
 
     def _get_sorted_set(self, data):
-        list = list(data)
-        list.sort()
-        return set(list)
+        l = list(data)
+        l.sort()
+        return set(l)
 
     def _get_packages(self):
         if(self.loaded):
@@ -53,9 +53,18 @@ class PackageRoot(object):
         self.saved = True
         return dir
 
+    def sorted_nodes(self):
+        return self._get_sorted_set(self.packages)
+
     def add_node(self, node):
         packages = self._get_packages()
         packages.add(node)
+        self.saved = False
+        return self.packages
+
+    def remove_node(self, node):
+        packages = self._get_packages()
+        packages.discard(node)
         self.saved = False
         return self.packages
 
@@ -64,5 +73,10 @@ class PackageRoot(object):
         if(packages is not None):
             self.packages = set(self._load_yaml()['packages'])
         self.loaded = True
+        return self.packages
+
+    def save(self):
+        self._write_yaml()
+        self.saved = True
         return self.packages
 
