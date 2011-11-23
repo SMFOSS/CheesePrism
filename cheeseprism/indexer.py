@@ -1,6 +1,7 @@
-import yaml
 from os import path
 import settings
+import yaml
+
 
 class PackageRoot(object):
     def __init__(self, dir):
