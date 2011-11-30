@@ -24,6 +24,7 @@ def main(global_config, **settings):
     config.add_static_view('static', 'static')
     config.scan('cheeseprism.views')
     config.set_request_factory(CPRequest)
+    config.add_route('package', 'package/{name}/{version}', view='cheeseprism.views.package')
     return config.make_wsgi_app()    
 
 

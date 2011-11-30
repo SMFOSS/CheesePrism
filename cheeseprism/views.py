@@ -30,7 +30,6 @@ def upload(context, request):
     return response
 
 
-#@app.route('/search', methods=['GET','POST'])
 @view_config(name='search', renderer='find_packages.html', context=resources.App)
 def find_packages(context, request):
     #search pypi on post
@@ -42,35 +41,39 @@ def find_packages(context, request):
     return dict(releases=releases, search_term=search_term)
 
 
-## #@app.route('/package/<name>/<version>')
-## def package(name, version):
-##     details = package_details(name, version)
-##     if details:
-##         details = details[0]
-##         url = details['url']
-##         filename = details['filename']
-##         try:
-##             req = Request(url)
-##             f = urlopen(req)
-##             print "downloading " + url
+def package(request):
+    """
+    refactor to use http://docs.python-requests.org/en/latest/index.html
+    """
+    name = request.matchdict['name']
+    version = request.matchdict['version']
+    details = utils.package_details(name, version)
+    if details:
+        details = details[0]
+        url = details['url']
+        filename = details['filename']
+        try:
+            req = Request(url)
+            f = urlopen(req)
+            print "downloading " + url
 
-##         	# Open our local file for writing
-##             local_file = open(os.path.join(app.config['FILE_ROOT'],filename), "w")
-##             #Write to our local file
-##             local_file.write(f.read())
-##             local_file.close()
-##             print 'finished downloading'
-##         #handle errors
-##         except HTTPError, e:
-##             print "HTTP Error:", e.code , url
-##         except URLError, e:
-##             print "URL Error:", e.reason , url
-##         regenerate_index(app.config['FILE_ROOT'],'index.html')
-##         flash('%s-%s was installed into the index successfully.' % (name, version))
-##     return redirect('/')
+        	# Open our local file for writing
+            local_file = open(os.path.join(app.config['FILE_ROOT'],filename), "w")
+            #Write to our local file
+            local_file.write(f.read())
+            local_file.close()
+            print 'finished downloading'
+        #handle errors
+        except HTTPError, e:
+            print "HTTP Error:", e.code , url
+        except URLError, e:
+            print "URL Error:", e.reason , url
+        regenerate_index(app.config['FILE_ROOT'],'index.html')
+        flash('%s-%s was installed into the index successfully.' % (name, version))
+    #@@ would be cool to return to the package in the index
+    return HTTPFound('/index')
 
 
-#@app.route('/regenerate-index', methods=['POST', 'GET'])
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
 def regenerate(context, request):
     if request.method == 'POST':
@@ -85,7 +88,7 @@ def regenerate(context, request):
 def flash(msg):
     session.flash(msg)
 
-#@app.route('/requirements', methods=['POST','GET'])
+
 @view_config(name='requirements', renderer='requirements_upload.html', context=resources.App)
 def from_requirements(context, request):
     if request.method == "POST":
