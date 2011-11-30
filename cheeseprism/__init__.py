@@ -5,7 +5,13 @@ from pyramid.request import Request
 from pyramid_jinja2 import renderer_factory
 from pyramid.session import UnencryptedCookieSessionFactoryConfig
 
-def get_app(settings):
+
+def main(global_config, **settings):
+    """ This function returns a WSGI application.
+    
+    It is usually called by the PasteDeploy framework during 
+    ``paster serve``.
+    """
     settings.setdefault('jinja2.i18n.domain', 'CheesePrism')
     session_factory = UnencryptedCookieSessionFactoryConfig('cheeseprism')
 
@@ -18,17 +24,8 @@ def get_app(settings):
     config.add_static_view('static', 'static')
     config.scan('cheeseprism.views')
     config.set_request_factory(CPRequest)
-    return config.make_wsgi_app()
+    return config.make_wsgi_app()    
 
-
-def main(global_config, **settings):
-    """ This function returns a WSGI application.
-    
-    It is usually called by the PasteDeploy framework during 
-    ``paster serve``.
-    """
-    settings = dict(settings)
-    return get_app(settings)
 
 class CPRequest(Request):
     """
@@ -41,6 +38,6 @@ class CPRequest(Request):
 
     @reify
     def file_root(self):
-        return self.registry.settings['file_root']    
+        return self.registry.settings['cheeseprism.file_root']    
 
 
