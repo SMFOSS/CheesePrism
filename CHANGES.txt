@@ -1,3 +1,8 @@
+2011-12-01  whit  <whit@JATO3-3.local>
+
+	* Housekeeping: add static fileserving for index for developments,
+  	  more use of path.py
+
 2011-11-07  whit  <whit@JATO3-3.local>
 
 	* Get app basically serving
@@ -5,4 +10,4 @@
 	
 2011-11-07  whit  <whit@surveymonkey.com>
 
- * Setup initial package structure	
+        * Setup initial package structure	
