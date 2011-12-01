@@ -3,6 +3,8 @@
 	* Housekeeping: add static fileserving for index for developments,
   	  more use of path.py
 
+	* Port over emporium readme.
+
 2011-11-07  whit  <whit@JATO3-3.local>
 
 	* Get app basically serving
