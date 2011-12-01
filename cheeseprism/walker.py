@@ -1,3 +1,4 @@
+#@@ consider putting this into indexer
 from cheeseprism.indexer import PackageRoot
 from path import path
 
