@@ -1,13 +1,13 @@
-from os import path
-import settings
+from path import path
 import yaml
 
 
 class PackageRoot(object):
-    def __init__(self, dir):
-        self.dir = dir
-        self.head, self.tail = path.split(self.dir)
-        self.yaml_path = path.join(self.dir, settings.YAML_FILE_NAME)
+    def __init__(self, dir, yaml_file_name='.contents.yaml'):
+        self.dir = path(dir)
+        self.head, self.tail = self.dir.parent, self.dir.name
+        self.yaml_file_name = yaml_file_name
+        self.yaml_path = self.dir / yaml_file_name
         self.packages = set()
         self.loaded = False
         self.saved = False
@@ -23,7 +23,7 @@ class PackageRoot(object):
             return s
 
     def _load_yaml(self):
-        if (path.exists(self.yaml_path)):
+        if path(self.yaml_path).exists():
             with file(self.yaml_path, 'r') as stream:
                 return yaml.load(stream)
         else:
@@ -48,9 +48,8 @@ class PackageRoot(object):
         packages = (self.packages if packages is None else packages)
         out = {'packages': self._get_sorted_set(packages)}
         out_dir = (self.dir if dir is None else dir)
-        p = path.join(out_dir, settings.YAML_FILE_NAME)
-        with open(p, "w") as f:
-            f.write(yaml.dump(out))
+        p = path(out_dir) / self.yaml_file_name
+        p.write_text(yaml.dump(out))
         self.saved = True
         return dir
 
