@@ -1,5 +1,6 @@
-import os.path as path
 from cheeseprism.indexer import PackageRoot
+from path import path
+
 
 class RootWalker(object):
     def __init__(self, dir):

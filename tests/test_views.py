@@ -1,12 +1,12 @@
-from cheeseprism.__init__ import get_app
 from pyramid import testing
+from cheeseprism.resources import App
 import unittest
+
 
 class ViewTests(unittest.TestCase):
 
     def setUp(self):
         testing.setUp()
-        self.App = get_app({})
 
     def tearDown(self):
         testing.tearDown()
@@ -17,7 +17,7 @@ class ViewTests(unittest.TestCase):
         request = testing.DummyRequest()
 
         request.POST['releases'] = 'pyramid'
-        response = find_packages(self.App, request)
+        response = find_packages(App(request), request)
         self.assertNotEqual(None, response['releases'])
         self.assertEqual(len(response['releases']), 1)
 
@@ -25,7 +25,7 @@ class ViewTests(unittest.TestCase):
         from cheeseprism.views import index
         request = testing.DummyRequest()
 
-        response = index(self.App, request)
+        response = index(App(request), request)
         self.assertEqual(response['page'], 'instructions')
 
     def test_regenerate(self):

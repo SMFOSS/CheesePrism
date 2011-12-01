@@ -1,9 +1,9 @@
-import unittest
-from pyramid.i18n import TranslationStringFactory
 from cheeseprism.indexer import PackageRoot
-import tempfile
-import os
+from pyramid.i18n import TranslationStringFactory
 import cheeseprism.settings as settings
+import os
+import tempfile
+import unittest
 
 _ = TranslationStringFactory('cheeseprism')
 
