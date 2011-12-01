@@ -3,7 +3,7 @@ from setuptools import setup
 import os
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.txt')).read()
+README = open(os.path.join(here, 'README.rst')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires=['pyramid', 'pyyaml', 'pyramid_jinja2', 'path.py', 'werkzeug', 'pyramid_debugtoolbar']
