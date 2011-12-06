@@ -11,8 +11,12 @@ import tempfile
 _ = TranslationStringFactory('CheesePrism')
 
 
-@view_config(name='instructions', renderer='instructions.html', context=resources.App)
+@view_config(renderer='index.html', context=resources.App)
 def index(context, request):
+    return {}
+
+@view_config(name='instructions', renderer='instructions.html', context=resources.App)
+def instructions(context, request):
     return {'page': 'instructions'}
 
 
@@ -30,7 +34,7 @@ def upload(context, request):
     return response
 
 
-@view_config(name='search', renderer='find_packages.html', context=resources.App)
+@view_config(name='find-packages', renderer='find_packages.html', context=resources.App)
 def find_packages(context, request):
     #search pypi on post
     releases = None
