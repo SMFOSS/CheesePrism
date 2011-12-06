@@ -8,6 +8,9 @@ import tarfile
 import tempfile
 import xmlrpclib
 import zipfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TarArchive:
@@ -35,6 +38,7 @@ class TarArchive:
 
     def close(self):
         return self.tgz.close()
+
  
 class ZipArchive:
     def __init__(self, filename):
@@ -109,30 +113,35 @@ def _extract_name_version(filename, tempdir):
     return
         
 def regenerate_index(indexpath, filename):
-    print "Regenerate index"
+    #print "Regenerate index"
     indexpath = path(indexpath)
     if not indexpath.exists():
         indexpath.makedirs()
     projects = {}
-    files = indexpath.files()
+    files = indexpath.files('*.egg|*.gz|*.bz2|*.tgz|*.zip') # make list configurable
     for item in files:
         try:
             tempdir = tempfile.mkdtemp()
-            project, revision = _extract_name_version(os.path.join(path,item), tempdir)
+            itempath = indexpath / item
+            logger.debug("Processing %s", itempath)
+            project, revision = _extract_name_version(itempath, tempdir)
             projects.setdefault(project, []).append((revision, item))
-            shutil.rmtree(tempdir)
+            path(tempdir).rmtree()
         except:
             import traceback
-            print traceback.format_exc()
+            tb = traceback.format_exc()
+            logger.error(tb)
     
     items = projects.items()
     items.sort()
 
+    #@@ <needs to be templatized >
     f = indexpath / filename
     f.write_lines(['<html>\n',
                     '<body>\n',
                     '<h1>Package Index</h1>\n',
                     '<ul>\n'])
+    
     for key, value in items:
         dirname = indexpath / key
         if not dirname.exists():
@@ -153,6 +162,7 @@ def regenerate_index(indexpath, filename):
     f.write_lines(['</ul>',
                     '</body>',
                     '</html>'], append=True)
+    #@@ </needs to be templatized >
 
 
 cache = SimpleCache()
