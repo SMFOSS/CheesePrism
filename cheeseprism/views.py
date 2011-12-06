@@ -20,18 +20,20 @@ def instructions(context, request):
     return {'page': 'instructions'}
 
 
-@view_config(name='simple', renderer='index.html', context=resources.App)
+@view_config(name='simple', context=resources.App)
 def upload(context, request):
     if not (hasattr(request.POST['content'], 'file')):
         raise RuntimeError('No file attached') 
 
     ##TODO: check out body_file attribute of request
-    f = request.POST['content']
-    f.save(path(request.file_root) / secure_filename(f.filename))
+    fieldstorage = request.POST['content']
+    dest = path(request.file_root) / secure_filename(fieldstorage.filename)
+
+    dest.write_bytes(fieldstorage.file.read())
+
     utils.regenerate_index(request.file_root, 'index.html')
-    response = request.get_response()
-    response.headers['X-Swalow-Status'] = 'SUCCESS'
-    return response
+    request.response.headers['X-Swalow-Status'] = 'SUCCESS'
+    return request.response
 
 
 @view_config(name='find-packages', renderer='find_packages.html', context=resources.App)
