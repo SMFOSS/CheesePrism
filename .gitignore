@@ -5,3 +5,5 @@
 /.coverage
 /dist
 *_flymake.py
+*#*
+tests/test-indexes/*
