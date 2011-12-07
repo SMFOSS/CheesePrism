@@ -1,4 +1,5 @@
 from cheeseprism import pipext
+from cheeseprism import index
 from cheeseprism import resources
 from cheeseprism import utils
 from path import path
@@ -31,7 +32,7 @@ def upload(context, request):
 
     dest.write_bytes(fieldstorage.file.read())
 
-    utils.regenerate_index(request.file_root, 'index.html')
+    index.regenerate(request.file_root)
     request.response.headers['X-Swalow-Status'] = 'SUCCESS'
     return request.response
 
@@ -74,7 +75,7 @@ def package(request):
             print "HTTP Error:", e.code , url
         except URLError, e:
             print "URL Error:", e.reason , url
-        regenerate_index(app.config['FILE_ROOT'],'index.html')
+        index.regenerate(app.config['FILE_ROOT'])
         flash('%s-%s was installed into the index successfully.' % (name, version))
     #@@ would be cool to return to the package in the index
     return HTTPFound('/index')
@@ -83,7 +84,7 @@ def package(request):
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
 def regenerate(context, request):
     if request.method == 'POST':
-        utils.regenerate_index(request.file_root, 'index.html')
+        index.regenerate(request.file_root)
         return HTTPFound('/index')
     return {}
 
@@ -109,7 +110,7 @@ def from_requirements(context, request):
         else:
             flash('packages were installed from the requirements file. %s' % names)
         finally:
-            utils.regenerate_index(request.file_root,'index.html')
+            index.regenerate(request.file_root)
         
         return HTTPFound('/requirements')
     return {}
