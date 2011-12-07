@@ -1,5 +1,5 @@
-from pyramid import testing
 from cheeseprism.resources import App
+from pyramid import testing
 import unittest
 
 
@@ -24,9 +24,7 @@ class ViewTests(unittest.TestCase):
     def test_index_view(self):
         from cheeseprism.views import index
         request = testing.DummyRequest()
-
-        response = index(App(request), request)
-        self.assertEqual(response['page'], 'instructions')
+        assert index(App(request), request) == {}
 
     def test_regenerate(self):
         raise NotImplementedError
