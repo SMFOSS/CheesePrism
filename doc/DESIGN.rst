@@ -2,7 +2,8 @@
  CheesePrism
 =============
 
-A python simple index implementation with maintained by a pyramid webapp
+A python simple index implementation with maintained by a pyramid
+webapp.
 
 
 Basic Design
