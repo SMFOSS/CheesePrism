@@ -1,17 +1,29 @@
 from cheeseprism.utils import resource_spec
 from itertools import count
 from path import path
-from pprint import pprint
+from pprint import pformat as pprint
+import logging
 import unittest
+
+
+logger = logging.getLogger(__name__)
 
 
 class IndexTestCase(unittest.TestCase):
     counter = count()
-    base = "egg:CheesePrism#tests/test-indexes"
+    index_parent = "egg:CheesePrism#tests/test-indexes"
+
+    @classmethod
+    def get_base(cls):
+        return path(resource_spec(cls.index_parent))
+
+    @property
+    def base(self): return self.get_base()
     
     def make_one(self, index_name='test-index'):
         from cheeseprism import index
-        index_path = path(resource_spec(self.base)) / "%s-%s" %(next(self.counter), index_name) 
+        self.count = next(self.counter)
+        index_path = self.base / ("%s-%s" %(self.count, index_name))
         return index.IndexManager(index_path)
 
     def setUp(self):
@@ -24,10 +36,18 @@ class IndexTestCase(unittest.TestCase):
         self.im.regenerate(self.im.path)
         pth = self.im.path
         file_structure = [(x.parent.name, x.name) for x in pth.walk()]
-        expected = [(u'0-test-index', u'dummypackage'),
+        index_name = u'%s-test-index' %self.count
+        expected = [(index_name, u'dummypackage'),
                     (u'dummypackage', u'index.html'),
-                    (u'0-test-index', u'dummypackage-0.0dev.tar.gz'),
-                    (u'0-test-index', u'index.html')]
-        assert file_structure == expected,  "File structure does not match:\nexpected: %s.\n actual: %s" %(pprint(expected), pprint(file_structure))
+                    (index_name, u'dummypackage-0.0dev.tar.gz'),
+                    (index_name, u'index.html')]
+        assert file_structure == expected, "File structure does not match::\n\nexpected:\n %s.\n\nactual:\n %s" %(pprint(expected), pprint(file_structure))
 
-        
+    def tearDown(self):
+        print "teardown: %s" %self.count
+        dirs = self.base.dirs()
+        logger.info(pprint(dirs))
+        logger.info(pprint([x.rmtree() for x in dirs]))
+
+def test_cleanup():
+    assert not IndexTestCase.get_base().dirs()
