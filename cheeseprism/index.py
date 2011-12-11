@@ -45,7 +45,6 @@ class IndexManager(object):
 
     @classmethod
     def regenerate(cls, indexpath):
-        #@@ refactor into class
         logger.info('Regenerate instance')
         im = cls(indexpath)
 
@@ -58,10 +57,6 @@ class IndexManager(object):
             project, revision = im.extract_name_version(itempath, tempdir)
             projects.setdefault(project, []).append((revision, item))
             path(tempdir).rmtree()
-##             except:
-##                 import traceback
-##                 tb = traceback.format_exc()
-##                 logger.error(tb)
 
         items = sorted(projects.items())
 
