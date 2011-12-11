@@ -13,8 +13,9 @@ _ = TranslationStringFactory('CheesePrism')
 
 
 @view_config(renderer='index.html', context=resources.App)
-def index(context, request):
+def homepage(context, request):
     return {}
+
 
 @view_config(name='instructions', renderer='instructions.html', context=resources.App)
 def instructions(context, request):
@@ -23,10 +24,12 @@ def instructions(context, request):
 
 @view_config(name='simple', context=resources.App)
 def upload(context, request):
+    """
+    The interface for disutils upload
+    """
     if not (hasattr(request.POST['content'], 'file')):
         raise RuntimeError('No file attached') 
 
-    ##TODO: check out body_file attribute of request
     fieldstorage = request.POST['content']
     dest = path(request.file_root) / secure_filename(fieldstorage.filename)
 
@@ -82,7 +85,7 @@ def package(request):
 
 
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
-def regenerate(context, request):
+def regenerate_index(context, request):
     if request.method == 'POST':
         index.regenerate(request.file_root)
         return HTTPFound('/index')
@@ -92,8 +95,8 @@ def regenerate(context, request):
 #tag_svn_revision = true
 
 
-def flash(msg):
-    session.flash(msg)
+## def flash(msg):
+##     session.flash(msg)
 
 
 @view_config(name='requirements', renderer='requirements_upload.html', context=resources.App)
