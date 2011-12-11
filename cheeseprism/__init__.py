@@ -1,9 +1,10 @@
 from cheeseprism.resources import App
+from path import path
 from pyramid.config import Configurator
 from pyramid.decorator import reify
 from pyramid.request import Request
-from pyramid_jinja2 import renderer_factory
 from pyramid.session import UnencryptedCookieSessionFactoryConfig
+from pyramid_jinja2 import renderer_factory
 
 
 def main(global_config, **settings):
@@ -39,6 +40,6 @@ class CPRequest(Request):
 
     @reify
     def file_root(self):
-        return self.registry.settings['cheeseprism.file_root']    
+        return path(self.registry.settings['cheeseprism.file_root'])
 
 
