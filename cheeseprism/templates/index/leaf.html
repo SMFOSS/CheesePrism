@@ -1,0 +1,9 @@
+{%extends "base.html"%}
+{%block content %}
+<h1>{{package_title}}</h1>
+<ul id="list">
+  {%for archive in versions%}
+  <li><a href="{{archive.url}}">{{archive.name}}</a></li>
+  {%endfor%}
+</ul>
+{%endblock%}
