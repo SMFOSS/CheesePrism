@@ -27,8 +27,7 @@ def main(global_config, **settings):
     config.scan('cheeseprism.views')
     config.set_request_factory(CPRequest)
     config.add_route('package', 'package/{name}/{version}', view='cheeseprism.views.package')
-    config.index_templates = EnvFactory.from_config(settings['cheeseprism.index_templates'])
-
+    settings['index_templates'] = EnvFactory.from_str(settings['cheeseprism.index_templates'])
     return config.make_wsgi_app()    
 
 
@@ -58,7 +57,7 @@ class EnvFactory(object):
                 raise RuntimeError('Loader type not found: %s %s' %(type_, spec))
 
     @classmethod
-    def from_config(cls, config=None):
+    def from_str(cls, config=None):
         factory = cls(config)
         choices = [jinja2.PackageLoader('cheeseprism', 'templates/index')]
         if config: [choices.insert(0, loader) for loader in factory.loaders]
@@ -76,7 +75,7 @@ class CPRequest(Request):
 
     @reify
     def index_templates(self):
-        return self.registry.index_templates
+        return self.registry.settings['index_templates']
     
 
     @reify

@@ -1,5 +1,6 @@
+from cheeseprism import EnvFactory
 from cheeseprism import arch
-from jinja2 import Template
+from cheeseprism.desc import updict 
 from path import path
 import logging
 import os
@@ -19,21 +20,47 @@ class IndexManager(object):
     root_index_file = 'index.html'
     EXTS = re.compile(r'^.*(?P<ext>\.egg|\.gz|\.bz2|\.tgz|\.zip)$')
 
-    def _get_default_template_dir(self):
-        pass
-    
-    def __init__(self, index_path, template_path=None):
-        if template_path is None:
-            self.template_path = self._get_default_template_dir()
+    leaf_name = 'leaf.html'
+    home_name = 'index.html'
+    def_index_title = 'CheesePrism'
+    leaf_data = updict()
+    index_data = updict(title=def_index_title,
+                        index_title=def_index_title,
+                        description="Welcome to the CheesePrism")
+
+    def __init__(self, index_path, template_env=None, urlbase='..',
+                 index_data={}, leaf_data={}):
+        self.urlbase = urlbase
+        self.template_env = template_env
+        if self.template_env is None:
+            self.template_env = self.default_env_factory('')
+        self.index_data = index_data.copy()            
+        self.leaf_data = leaf_data.copy()
         self.path = path(index_path)
         if not self.path.exists():
             self.path.makedirs()        
 
-    def leaf_template(self):
-        pass
+    class template(object):
+        """
+        A little descriptor for returning templates from jinja env.
+        """
+        env_method = 'template_env'
+        def __init__(self, name):
+            self.name = name
 
-    def home_template(self):
-        pass
+        def get_env(self, obj):
+            return getattr(obj, self.env_method, None)
+        
+        def __get__(self, obj, objtype):
+            env = self.get_env(obj)
+            return env.get_template(self.name)
+
+    leaf_template = template('leaf.html')
+    home_template = template('home.html')
+
+    @property
+    def default_env_factory(self):
+        return EnvFactory.from_str
 
     @property
     def file_pattern(self):
@@ -43,54 +70,55 @@ class IndexManager(object):
     def files(self):
         return (x for x in self.path.files() if self.EXTS.match(x))
 
-    @classmethod
-    def regenerate(cls, indexpath):
-        logger.info('Regenerate instance')
-        im = cls(indexpath)
-
+    def load_projects(self):
         projects = {}
-
-        for item in im.files:
+        for item in self.files:
             tempdir = tempfile.mkdtemp()
-            itempath = indexpath / item
+            itempath = self.path / item
             logger.debug("Processing %s", itempath)
-            project, revision = im.extract_name_version(itempath, tempdir)
+            project, revision = self.extract_name_version(itempath, tempdir)
             projects.setdefault(project, []).append((revision, item))
             path(tempdir).rmtree()
+        return sorted(projects.items())
 
-        items = sorted(projects.items())
+    @classmethod
+    def regenerate(cls, indexpath, template_env=None):
+        logger.info('Regenerate instance')
+        im = cls(indexpath, template_env)
 
-        #@@ <needs to be templatized >
-        f = indexpath / im.root_index_file
-        f.write_lines(['<html>\n',
-                        '<body>\n',
-                        '<h1>Package Index</h1>\n',
-                        '<ul>\n'])
+        items = im.load_projects()
+        home_file = indexpath / im.root_index_file
 
-        for key, value in items:
-            dirname = indexpath / key
-            if not dirname.exists():
-                dirname.makedirs()
-            f.write_text('<li><a href="%s/index.html">%s</a>\n' % (key, key), append=True)
-            sub = indexpath / key / 'index.html' 
-            sub.write_lines(['<html>\n',
-                            '<body>\n',
-                            '<h1>%s Distributions</h1>\n' % key,
-                            '<ul>\n'])
-            for revision, archive in value:
-                logger.info('  -> %s, %s', revision, archive)
-                sub.write_text('<li><a href="../%s">%s</a>\n' % (archive.name, archive.name), append=True)
+        yield im.write_index_home(home_file, items)
+        yield [im.write_leaf(indexpath / key, value) for key, value in items]
 
-            sub.write_lines(['</ul>',
-                            '</body>',
-                            '</html>'], append=True)
-        f.write_lines(['</ul>',
-                        '</body>',
-                        '</html>'], append=True)
-    #@@ </needs to be templatized >    
+    def write_index_home(self, home_file, items):
+        logger.info('Write index home:%s', home_file)
+        data = self.index_data.copy()
+        data['packages'] = [dict(name=key, url="%s/%s" %(self.urlbase, key)) \
+                            for key, value in items]
+        home_file.write_text(self.home_template.render(**data))
+        return home_file
+    
+    def write_leaf(self, leafdir, versions):
+        if not leafdir.exists():
+            leafdir.makedirs()
+        leafhome = leafdir / "index.html"
+        for revision, archive in versions:
+            logger.info('  -> %s, %s', revision, archive)
+            data = self.leaf_values(leafdir.name, archive)
+            data['package_title'] = leafdir.name
+            data['title'] = "%s:%s" %(self.index_data['title'], leafdir.name)
+            leafhome.write_text(self.leaf_template.render(**data))
+        return leafhome
+
+    def leaf_values(self, leafname, archive):
+        url = "%s/%s" %(self.urlbase, archive.name)
+        return dict(url=url, name=archive.name)
 
     @staticmethod
     def extract_name_version(filename, tempdir):
+        #@@ refactor
         archive = None
         if filename.endswith('.gz') or filename.endswith('.tgz') or filename.endswith('.bz2'):
             archive = arch.TarArchive(filename)

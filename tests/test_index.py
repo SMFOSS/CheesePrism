@@ -3,6 +3,7 @@ from itertools import count
 from path import path
 from pprint import pformat as pprint
 import logging
+import textwrap
 import unittest
 
 
@@ -33,7 +34,7 @@ class IndexTestCase(unittest.TestCase):
         self.dummypath = self.im.path / dummy.name
 
     def test_regenerate_index(self):
-        self.im.regenerate(self.im.path)
+        home, leafs = self.im.regenerate(self.im.path)
         pth = self.im.path
         file_structure = [(x.parent.name, x.name) for x in pth.walk()]
         index_name = u'%s-test-index' %self.count
@@ -41,10 +42,20 @@ class IndexTestCase(unittest.TestCase):
                     (u'dummypackage', u'index.html'),
                     (index_name, u'dummypackage-0.0dev.tar.gz'),
                     (index_name, u'index.html')]
-        assert file_structure == expected, "File structure does not match::\n\nexpected:\n %s.\n\nactual:\n %s" %(pprint(expected), pprint(file_structure))
+        assert file_structure == expected, \
+               textwrap.dedent("""
+               File structure does not match::
+
+               expected:
+
+                %s
+
+               actual:
+
+                %s""") %(pprint(expected), pprint(file_structure))
 
     def tearDown(self):
-        print "teardown: %s" %self.count
+        logger.debug("teardown: %s", self.count)
         dirs = self.base.dirs()
         logger.info(pprint(dirs))
         logger.info(pprint([x.rmtree() for x in dirs]))

@@ -5,8 +5,14 @@
   <head> 
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
 
-    <title>{{ title }}</title> 
+    <title>
+      {% block title %}
+      {{ title }}
+      {% endblock %}
+    </title> 
+    {%if csspath%}
     <link rel="stylesheet" href="{{csspath}}" type="text/css" /> 
+    {%endif%}
     {%block js%}
     {%endblock%}
   </head> 

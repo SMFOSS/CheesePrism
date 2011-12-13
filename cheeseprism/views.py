@@ -8,6 +8,10 @@ from pyramid.i18n import TranslationStringFactory
 from pyramid.view import view_config
 from werkzeug import secure_filename
 import tempfile
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 _ = TranslationStringFactory('CheesePrism')
 
@@ -87,7 +91,8 @@ def package(request):
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
 def regenerate_index(context, request):
     if request.method == 'POST':
-        index.regenerate(request.file_root)
+        homefile, leaves = index.regenerate(request.file_root, request.index_templates)
+        logger.debug("Regenerated index:\n %s %s", homefile, leaves)
         return HTTPFound('/index')
     return {}
 

@@ -11,7 +11,7 @@ class updict(dict):
     def __get__(self, obj, objtype):
         return self
 
-    def __set__(self, val):
+    def __set__(self, obj, val):
         self.update(val)
 
     def __delete__(self, obj):
