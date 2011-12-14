@@ -3,6 +3,7 @@ from cheeseprism import EnvFactory
 from path import path
 from pyramid import testing
 from pyramid.httpexceptions import HTTPFound
+from mock import patch
 import itertools
 import unittest
 
@@ -39,15 +40,20 @@ class ViewTests(unittest.TestCase):
             CPDummyRequest.test_dir.rmtree()
             CPDummyRequest.test_dir = None
 
-    def test_search_view(self):
-        raise NotImplementedError
-        from cheeseprism.views import find_packages
+    @patch('cheeseprism.utils.search_pypi')
+    def test_find_package(self, search_pypi):
+        search_pypi.return_value = ['1.3a2']
+        from cheeseprism.views import find_package
         request = testing.DummyRequest()
+        request.POST['search_box'] = 'pyramid'
+        out = find_package(App(request), request)
+        assert out['releases'] == None
+        assert out['search_term'] == None
 
-        request.POST['releases'] = 'pyramid'
-        response = find_packages(App(request), request)
-        self.assertNotEqual(None, response['releases'])
-        self.assertEqual(len(response['releases']), 1)
+        request.method = 'POST'
+        out = find_package(App(request), request)
+        assert out['releases'] == ['1.3a2'], "%s != %s" %(out['releases'], ['1.3a2'])
+        assert out['search_term'] == 'pyramid'
 
     def test_index_view(self):
         from cheeseprism.views import homepage as index
@@ -71,7 +77,7 @@ class ViewTests(unittest.TestCase):
 
         context, req = self.base_cr
         req.method = "POST"
-        import pdb;pdb.set_trace()
+
         out = regenerate_index(context, req)
         assert isinstance(out, HTTPFound)
         assert req.file_root.exists(), "index not created at %s" %req.file_root

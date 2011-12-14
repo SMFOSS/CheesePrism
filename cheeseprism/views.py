@@ -45,12 +45,11 @@ def upload(context, request):
 
 
 @view_config(name='find-packages', renderer='find_packages.html', context=resources.App)
-def find_packages(context, request):
-    #search pypi on post
+def find_package(context, request):
     releases = None
     search_term = None
     if request.method == "POST":
-        search_term = request.form['search_box']
+        search_term = request.POST['search_box']
         releases = utils.search_pypi(search_term)
     return dict(releases=releases, search_term=search_term)
 
