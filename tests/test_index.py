@@ -34,7 +34,7 @@ class IndexTestCase(unittest.TestCase):
         self.dummypath = self.im.path / dummy.name
 
     def test_regenerate_index(self):
-        home, leafs = self.im.regenerate(self.im.path)
+        home, leaves = self.im.regenerate(self.im.path)
         pth = self.im.path
         file_structure = [(x.parent.name, x.name) for x in pth.walk()]
         index_name = u'%s-test-index' %self.count
@@ -42,6 +42,10 @@ class IndexTestCase(unittest.TestCase):
                     (u'dummypackage', u'index.html'),
                     (index_name, u'dummypackage-0.0dev.tar.gz'),
                     (index_name, u'index.html')]
+        assert len(leaves) == 1
+        assert leaves[0].exists()
+        assert leaves[0].name == 'index.html'
+        assert leaves[0].parent.name == 'dummypackage'
         assert file_structure == expected, \
                textwrap.dedent("""
                File structure does not match::

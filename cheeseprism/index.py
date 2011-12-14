@@ -99,17 +99,17 @@ class IndexManager(object):
                             for key, value in items]
         home_file.write_text(self.home_template.render(**data))
         return home_file
-    
+
     def write_leaf(self, leafdir, versions):
         if not leafdir.exists():
             leafdir.makedirs()
         leafhome = leafdir / "index.html"
-        for revision, archive in versions:
-            logger.info('  -> %s, %s', revision, archive)
-            data = self.leaf_values(leafdir.name, archive)
-            data['package_title'] = leafdir.name
-            data['title'] = "%s:%s" %(self.index_data['title'], leafdir.name)
-            leafhome.write_text(self.leaf_template.render(**data))
+        data = dict(package_title=leafdir.name,
+                    title="%s:%s" %(self.index_data['title'], leafdir.name),
+                    versions=[self.leaf_values(leafdir.name, archive)\
+                              for revision, archive in versions])
+        text = self.leaf_template.render(**data)
+        leafhome.write_text(text)
         return leafhome
 
     def leaf_values(self, leafname, archive):
