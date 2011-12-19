@@ -1,5 +1,6 @@
-from cheeseprism import pipext
+from cheeseprism import event
 from cheeseprism import index
+from cheeseprism import pipext
 from cheeseprism import resources
 from cheeseprism import utils
 from path import path
@@ -7,8 +8,8 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n import TranslationStringFactory
 from pyramid.view import view_config
 from werkzeug import secure_filename
-import tempfile
 import logging
+import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -38,8 +39,7 @@ def upload(context, request):
     dest = path(request.file_root) / secure_filename(fieldstorage.filename)
 
     dest.write_bytes(fieldstorage.file.read())
-
-    index.regenerate(request.file_root)
+    request.registry.notify(event.PackageAdded(request.index, dest))
     request.response.headers['X-Swalow-Status'] = 'SUCCESS'
     return request.response
 
@@ -90,17 +90,11 @@ def package(request):
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
 def regenerate_index(context, request):
     if request.method == 'POST':
-        homefile, leaves = index.regenerate(request.file_root, request.index_templates)
-        logger.debug("Regenerated index:\n %s %s", homefile, leaves)
+        logger.debug("Regenerate index")
+        homefile, leaves = request.index.regenerate_all()
+        logger.debug("regeneration done:\n %s %s", homefile, leaves) #@@ time it 
         return HTTPFound('/index')
     return {}
-
-#tag_build = dev
-#tag_svn_revision = true
-
-
-## def flash(msg):
-##     session.flash(msg)
 
 
 @view_config(name='requirements', renderer='requirements_upload.html', context=resources.App)

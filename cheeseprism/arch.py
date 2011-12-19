@@ -1,9 +1,13 @@
 import os
+import pkginfo
 import tarfile
 import zipfile
 
 
-class TarArchive(object):
+class Archive(object):
+    pass
+
+class TarArchive(Archive):
     modes = {'.bz2':"r:bz2",
              '.gz':"r:gz",
              '.tgz':"r:gz"}
@@ -13,6 +17,7 @@ class TarArchive(object):
     def __init__(self, filename):
         self.filename = filename
         self.tgz = tarfile.TarFile.open(filename, self.mode)
+        self.info = pkginfo.sdist(filename)
 
     @classmethod
     def extensions(cls):
@@ -43,11 +48,11 @@ class TarArchive(object):
         return self.tgz.close()
 
  
-class ZipArchive(object):
+class ZipArchive(Archive):
     """
     An utility wrapper for zip and eggfile
     """
-    ext = '.zip','.egg',
+    ext = '.zip', '.egg',
 
     @classmethod
     def extensions(cls): return cls.ext
@@ -55,6 +60,10 @@ class ZipArchive(object):
     def __init__(self, filename):
         self.filename = filename
         self.zipf = zipfile.ZipFile(filename, 'r')
+        if filename.endswith('.egg'):
+            self.info = pkginfo.bdist(filename)
+        else:
+            self.info = pkginfo.sdist(filename)
 
     def names(self):
         return self.zipf.namelist()

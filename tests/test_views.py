@@ -1,9 +1,9 @@
+from cheeseprism import index
 from cheeseprism.resources import App
-from cheeseprism import EnvFactory
+from mock import patch
 from path import path
 from pyramid import testing
 from pyramid.httpexceptions import HTTPFound
-from mock import patch
 import itertools
 import unittest
 
@@ -25,8 +25,12 @@ class CPDummyRequest(testing.DummyRequest):
     @property
     def index_templates(self):
         if self.env is None:
-            self.env = EnvFactory.from_str()
+            self.env = index.EnvFactory.from_str()
         return self.env
+
+    @property
+    def index(self):
+        return index.IndexManager(self.file_root, template_env=self.index_templates)
     
 
 class ViewTests(unittest.TestCase):

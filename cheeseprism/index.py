@@ -1,7 +1,12 @@
-from cheeseprism import EnvFactory
+"""
+Classes, subscribers and functions for dealing with index management
+"""
 from cheeseprism import arch
+from cheeseprism import event
 from cheeseprism.desc import updict 
 from path import path
+from pyramid.events import subscriber
+import jinja2
 import logging
 import os
 import re
@@ -63,10 +68,6 @@ class IndexManager(object):
         return EnvFactory.from_str
 
     @property
-    def file_pattern(self):
-        return 
-
-    @property
     def files(self):
         return (x for x in self.path.files() if self.EXTS.match(x))
 
@@ -82,15 +83,24 @@ class IndexManager(object):
         return sorted(projects.items())
 
     @classmethod
-    def regenerate(cls, indexpath, template_env=None):
+    def regenerate(cls, indexpath, archive=None, template_env=None):
         logger.info('Regenerate instance')
         im = cls(indexpath, template_env)
+        if archive is None:
+            homefile, leaves = im.regenerate_all()
+            return homefile, leaves
+        
+        leafname = ''
+        im.regenerate_leaf(leafname)
 
-        items = im.load_projects()
-        home_file = indexpath / im.root_index_file
+    def regenerate_leaf(self, leafname):
+        raise NotImplementedError
 
-        yield im.write_index_home(home_file, items)
-        yield [im.write_leaf(indexpath / key, value) for key, value in items]
+    def regenerate_all(self):
+        items = self.load_projects()
+        home_file = self.path / self.root_index_file
+        yield self.write_index_home(home_file, items)
+        yield [self.write_leaf(self.path / key, value) for key, value in items]
 
     def write_index_home(self, home_file, items):
         logger.info('Write index home:%s', home_file)
@@ -116,16 +126,21 @@ class IndexManager(object):
         url = "%s/%s" %(self.urlbase, archive.name)
         return dict(url=url, name=archive.name)
 
-    @staticmethod
-    def extract_name_version(filename, tempdir):
-        #@@ refactor
-        archive = None
-        if filename.endswith('.gz') or filename.endswith('.tgz') or filename.endswith('.bz2'):
-            archive = arch.TarArchive(filename)
+    def extension_of(self, path):
+        match = self.EXTS.match(path)
+        if match:
+            return match.groupdict()['ext']
 
-        elif filename.endswith('.egg') or filename.endswith('.zip'):
-            archive = arch.ZipArchive(filename)
+    def archive_from_file(self, path):
+        ext = self.extension_of(path)
+        if ext is not None:
+            if ext in set(('.gz','.tgz', '.bz2')):
+                return arch.TarArchive(path)
+            elif ext in set(('.egg', '.zip')):
+                return arch.ZipArchive(path)
 
+    def extract_name_version(self, filename, tempdir):
+        archive = self.archive_from_file(filename)
         if archive is None:
             return
         try:
@@ -167,3 +182,44 @@ class IndexManager(object):
         return
 
 regenerate = IndexManager.regenerate
+
+
+@subscriber(event.IPackageAdded)
+def rebuild_leaf(event):
+    path = event.path
+    im = event.im
+    archive = im.archive_from_file(path)
+    im.regenerate_leaf(archive.info.name)
+
+
+class EnvFactory(object):
+    env_class = jinja2.Environment
+    def __init__(self, config):
+        self.config = config
+
+    @property
+    def loaders(self):
+        if self.config:
+            loaders = self.config.split(' ')
+            for loader in loaders:
+                spec = loader.split(':')
+                if len(spec) == 1:
+                    yield jinja2.FileSystemLoader(spec); continue
+
+                type_, spec = spec
+                if type_ == "file":
+                    yield jinja2.FileSystemLoader(spec); continue
+
+                if type_ == 'pkg':
+                    spec = spec.split('#')
+                    if len(spec) == 1: yield jinja2.PackageLoader(spec[0])
+                    else: yield jinja2.PackageLoader(*spec)
+                    continue
+                raise RuntimeError('Loader type not found: %s %s' %(type_, spec))
+
+    @classmethod
+    def from_str(cls, config=None):
+        factory = cls(config)
+        choices = [jinja2.PackageLoader('cheeseprism', 'templates/index')]
+        if config: [choices.insert(0, loader) for loader in factory.loaders]
+        return factory.env_class(loader=jinja2.ChoiceLoader(choices))
