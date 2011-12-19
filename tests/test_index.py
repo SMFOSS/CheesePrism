@@ -58,6 +58,15 @@ class IndexTestCase(unittest.TestCase):
 
                 %s""") %(pprint(expected), pprint(file_structure))
 
+    def test_regenerate_leaf_event(self):
+        from cheeseprism.event import PackageAdded
+        from cheeseprism.index import rebuild_leaf
+        event = PackageAdded(self.im, self.dummypath)
+        out = rebuild_leaf(event)
+
+        
+        
+
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
         dirs = self.base.dirs()
