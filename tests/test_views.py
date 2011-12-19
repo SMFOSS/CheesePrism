@@ -1,8 +1,12 @@
 from cheeseprism import index
+from pyramid.events import subscriber
 from cheeseprism.resources import App
+from mock import Mock
 from mock import patch
+from nose.tools import raises
 from path import path
 from pyramid import testing
+from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 import itertools
 import unittest
@@ -31,12 +35,28 @@ class CPDummyRequest(testing.DummyRequest):
     @property
     def index(self):
         return index.IndexManager(self.file_root, template_env=self.index_templates)
+
+    @reify
+    def response(self):
+        return DummyResponse()
     
+
+class DummyResponse(object):
+    def __init__(self):
+        self.headers = {}
+
+
+class FakeFS(object):
+    def __init__(self, path):
+        self.filename = path.name
+        self.file = Mock()
+        self.file.read.return_value = "Some gzip binary"
+
 
 class ViewTests(unittest.TestCase):
 
     def setUp(self):
-        testing.setUp()
+        self.config = testing.setUp()
 
     def tearDown(self):
         testing.tearDown()
@@ -88,3 +108,29 @@ class ViewTests(unittest.TestCase):
         assert len(req.file_root.files()) == 1
         assert req.file_root.files()[0].name == 'index.html'
 
+    @raises(RuntimeError)
+    def test_upload_raises(self):
+        from cheeseprism.views import upload
+        context, request = self.base_cr
+        request.POST['content'] = ''
+        upload(context, request)
+
+    @patch('path.path.write_bytes')
+    def test_upload(self, wb):
+        event_results = {}
+        from cheeseprism.views import upload
+        from cheeseprism.event import IPackageAdded
+        @subscriber(IPackageAdded)
+        def test_event_fire(event):
+            event_results['fired'] = True
+        self.config.add_subscriber(test_event_fire)
+        context, request = self.base_cr
+        request.method = 'POST'
+        request.POST['content'] = FakeFS(path('dummypackage/dist/dummypackage-0.0dev.tar.gz'))
+        res = upload(context, request)
+        assert res.headers == {'X-Swalow-Status': 'SUCCESS'}
+        assert 'fired' in event_results
+        
+
+
+    

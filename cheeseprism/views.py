@@ -32,7 +32,7 @@ def upload(context, request):
     """
     The interface for disutils upload
     """
-    if not (hasattr(request.POST['content'], 'file')):
+    if not (request.method == 'POST' and hasattr(request.POST['content'], 'file')):
         raise RuntimeError('No file attached') 
 
     fieldstorage = request.POST['content']
