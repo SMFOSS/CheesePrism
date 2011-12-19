@@ -151,12 +151,9 @@ class IndexManager(object):
                     for line in lines:
                         key, value = line.split(':', 1)
                         if key == 'Name':
-                            print filename, value
                             project = value.strip()
-
                         elif key == 'Version':
                             version = value.strip()
-
                         if project is not None and version is not None:
                             return project, version
                         continue
@@ -180,6 +177,7 @@ class IndexManager(object):
             import traceback
             print traceback.format_exc()
         return
+
 
 regenerate = IndexManager.regenerate
 
