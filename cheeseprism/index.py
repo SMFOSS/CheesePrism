@@ -90,8 +90,8 @@ class IndexManager(object):
             homefile, leaves = im.regenerate_all()
             return homefile, leaves
         
-        leafname = ''
-        im.regenerate_leaf(leafname)
+        arch = im.archive_from_file(archive)
+        im.regenerate_leaf(arch.info.name)
 
     def regenerate_leaf(self, leafname):
         raise NotImplementedError
