@@ -17,7 +17,7 @@ class TarArchive(Archive):
     def __init__(self, filename):
         self.filename = filename
         self.tgz = tarfile.TarFile.open(filename, self.mode)
-        self.info = pkginfo.sdist(filename)
+        self.info = pkginfo.sdist.SDist(filename)
 
     @classmethod
     def extensions(cls):
@@ -61,9 +61,9 @@ class ZipArchive(Archive):
         self.filename = filename
         self.zipf = zipfile.ZipFile(filename, 'r')
         if filename.endswith('.egg'):
-            self.info = pkginfo.bdist(filename)
+            self.info = pkginfo.bdist.BDist(filename)
         else:
-            self.info = pkginfo.sdist(filename)
+            self.info = pkginfo.sdist.SDist(filename)
 
     def names(self):
         return self.zipf.namelist()
