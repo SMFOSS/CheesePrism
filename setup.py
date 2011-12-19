@@ -6,7 +6,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
-requires=['pyramid', 'pyyaml', 'Jinja2', 'pyramid_jinja2', 'path.py', 'werkzeug', 'pyramid_debugtoolbar']
+requires=['pyramid',
+          'Jinja2',
+          'pyramid_jinja2',
+          'path.py',
+          'werkzeug',
+          'pyramid_debugtoolbar',
+          'pkginfo']
 
 setup(name='CheesePrism',
       version='0.0',
