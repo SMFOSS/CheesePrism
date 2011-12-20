@@ -94,7 +94,7 @@ class IndexManager(object):
         im.regenerate_leaf(arch.info.name)
 
     def regenerate_leaf(self, leafname):
-        raise NotImplementedError
+        pass
 
     def regenerate_all(self):
         items = self.load_projects()
@@ -187,7 +187,7 @@ def rebuild_leaf(event):
     path = event.path
     im = event.im
     archive = im.archive_from_file(path)
-    im.regenerate_leaf(archive.info.name)
+    return im.regenerate_leaf(archive.info.name)
 
 
 class EnvFactory(object):

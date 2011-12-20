@@ -1,5 +1,6 @@
 from cheeseprism.utils import resource_spec
 from itertools import count
+from mock import patch
 from path import path
 from pprint import pformat as pprint
 import logging
@@ -58,14 +59,35 @@ class IndexTestCase(unittest.TestCase):
 
                 %s""") %(pprint(expected), pprint(file_structure))
 
-    def test_regenerate_leaf_event(self):
+    @patch('cheeseprism.index.IndexManager.regenerate_leaf')
+    def test_regenerate_leaf_event(self, rl):
+        """
+        Cover event subscriber
+        """
         from cheeseprism.event import PackageAdded
         from cheeseprism.index import rebuild_leaf
-        event = PackageAdded(self.im, self.dummypath)
-        out = rebuild_leaf(event)
 
+        event = PackageAdded(self.im, path('dummypackage2/dist/dummypackage-0.1.tar.gz'))
+        out = rebuild_leaf(event)
+        assert out is not None
+        assert rl.call_args == (('dummypackage',), {})
+
+    def test_regenerate_leaf(self):
+        [x for x in self.im.regenerate_all()]
+        leafindex = self.im.path / 'dummypackage/index.html'
+        new_arch = path('dummypackage2/dist/dummypackage-0.1.tar.gz')
+        new_arch.copy(self.im.path)
+        added = self.im.path / new_arch.name
+
+        before_txt = leafindex.text()
+        before_ctime = leafindex.ctime
         
-        
+        arch = self.im.archive_from_file(added)
+        out = self.im.regenerate_leaf(arch.info.name)
+
+        assert leafindex.ctime > before_ctime
+        assert before_txt != leafindex.text()
+
 
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
