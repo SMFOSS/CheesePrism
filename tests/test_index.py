@@ -88,7 +88,7 @@ class IndexTestCase(unittest.TestCase):
 
         before_txt = leafindex.text()
         before_mtime = leafindex.mtime
-        time.sleep(0.01)
+        time.sleep(.1)
         
         arch = self.im.archive_from_file(added)
         out = self.im.regenerate_leaf(arch.info.name)
