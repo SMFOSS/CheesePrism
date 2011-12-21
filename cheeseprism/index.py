@@ -8,11 +8,8 @@ from path import path
 from pyramid.events import subscriber
 import jinja2
 import logging
-import os
 import re
-import subprocess
-import sys
-import tempfile
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -71,15 +68,13 @@ class IndexManager(object):
     def files(self):
         return (x for x in self.path.files() if self.EXTS.match(x))
 
-    def load_projects(self):
+    def projects_from_archives(self):
+        files = self.files
         projects = {}
-        for item in self.files:
-            tempdir = tempfile.mkdtemp()
+        for item in files:
             itempath = self.path / item
-            logger.debug("Processing %s", itempath)
-            project, revision = self.extract_name_version(itempath, tempdir)
-            projects.setdefault(project, []).append((revision, item))
-            path(tempdir).rmtree()
+            info = self.extract_info(itempath)
+            projects.setdefault(info.name, []).append((info, itempath))
         return sorted(projects.items())
 
     @classmethod
@@ -94,10 +89,12 @@ class IndexManager(object):
         im.regenerate_leaf(arch.info.name)
 
     def regenerate_leaf(self, leafname):
-        pass
+        files = self.path.files('%s-*.*' %leafname)
+        versions = ((self.extract_info(self.path / item), item) for item in files)
+        return self.write_leaf(self.path / leafname, versions)
 
     def regenerate_all(self):
-        items = self.load_projects()
+        items = self.projects_from_archives()
         home_file = self.path / self.root_index_file
         yield self.write_index_home(home_file, items)
         yield [self.write_leaf(self.path / key, value) for key, value in items]
@@ -113,13 +110,19 @@ class IndexManager(object):
     def write_leaf(self, leafdir, versions):
         if not leafdir.exists():
             leafdir.makedirs()
+
         leafhome = leafdir / "index.html"
-        data = dict(package_title=leafdir.name,
-                    title="%s:%s" %(self.index_data['title'], leafdir.name),
-                    versions=[self.leaf_values(leafdir.name, archive)\
-                              for revision, archive in versions])
-        text = self.leaf_template.render(**data)
+        title = "%s:%s" %(self.index_data['title'], leafdir.name)
+        tversions = [self.leaf_values(leafdir.name, archive)\
+                    for info, archive in versions]
+        
+        text = self.leaf_template\
+               .render(package_title=leafdir.name,
+                       title=title,
+                       versions=tversions)
+
         leafhome.write_text(text)
+        leafhome.utime((time.time(), time.time()))
         return leafhome
 
     def leaf_values(self, leafname, archive):
@@ -139,44 +142,9 @@ class IndexManager(object):
             elif ext in set(('.egg', '.zip')):
                 return arch.ZipArchive(path)
 
-    def extract_name_version(self, filename, tempdir):
+    def extract_info(self, filename):
         archive = self.archive_from_file(filename)
-        if archive is None:
-            return
-        try:
-            for name in archive.names():
-                if len(name.split('/'))==2  and name.endswith('PKG-INFO'):
-                    project, version = None, None
-                    lines = archive.lines(name)
-                    for line in lines:
-                        key, value = line.split(':', 1)
-                        if key == 'Name':
-                            project = value.strip()
-                        elif key == 'Version':
-                            version = value.strip()
-                        if project is not None and version is not None:
-                            return project, version
-                        continue
-
-            archive.extractall(tempdir)
-            dirs = os.listdir(tempdir)
-            dir = os.path.join(tempdir, dirs[0])
-            if not os.path.isdir(dir):
-                dir = tempdir
-            command = ('cd %s && %s setup.py --name --version'
-                           % (dir, sys.executable))
-            popen = subprocess.Popen(command,
-                                    stdout=subprocess.PIPE,
-                                    shell=True,
-                                    )
-            output = popen.communicate()[0]
-            archive.close()
-            return output.splitlines()[:2]
-        except:
-            archive.close()
-            import traceback
-            print traceback.format_exc()
-        return
+        return archive.info
 
 
 regenerate = IndexManager.regenerate

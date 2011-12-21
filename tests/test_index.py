@@ -4,16 +4,23 @@ from mock import patch
 from path import path
 from pprint import pformat as pprint
 import logging
+import pkg_resources
 import textwrap
+import time
 import unittest
 
-
 logger = logging.getLogger(__name__)
+
+
+
+    
 
 
 class IndexTestCase(unittest.TestCase):
     counter = count()
     index_parent = "egg:CheesePrism#tests/test-indexes"
+
+    tdir = path(resource_spec('egg:CheesePrism#tests'))
 
     @classmethod
     def get_base(cls):
@@ -67,7 +74,7 @@ class IndexTestCase(unittest.TestCase):
         from cheeseprism.event import PackageAdded
         from cheeseprism.index import rebuild_leaf
 
-        event = PackageAdded(self.im, path('dummypackage2/dist/dummypackage-0.1.tar.gz'))
+        event = PackageAdded(self.im, self.tdir / path('dummypackage2/dist/dummypackage-0.1.tar.gz'))
         out = rebuild_leaf(event)
         assert out is not None
         assert rl.call_args == (('dummypackage',), {})
@@ -75,17 +82,19 @@ class IndexTestCase(unittest.TestCase):
     def test_regenerate_leaf(self):
         [x for x in self.im.regenerate_all()]
         leafindex = self.im.path / 'dummypackage/index.html'
-        new_arch = path('dummypackage2/dist/dummypackage-0.1.tar.gz')
+        new_arch = self.tdir / path('dummypackage2/dist/dummypackage-0.1.tar.gz')
         new_arch.copy(self.im.path)
         added = self.im.path / new_arch.name
 
         before_txt = leafindex.text()
-        before_ctime = leafindex.ctime
+        before_mtime = leafindex.mtime
+        time.sleep(0.01)
         
         arch = self.im.archive_from_file(added)
+        import pdb;pdb.set_trace()
         out = self.im.regenerate_leaf(arch.info.name)
 
-        assert leafindex.ctime > before_ctime
+        assert leafindex.mtime > before_mtime, "%s < %s" %(leafindex.mtime, before_mtime)
         assert before_txt != leafindex.text()
 
 

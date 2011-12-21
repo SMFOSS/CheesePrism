@@ -1,7 +1,12 @@
+2011-12-21  whit  <whit@JATO3-3.local>
+
+	* Individual leaf update via event on upload
+	* Refactor to use pkginfo 
+
 2011-12-01  whit  <whit@JATO3-3.local>
 
 	* Housekeeping: add static fileserving for index for developments,
-  	  more use of path.py
+	  more use of path.py
 
 	* Port over emporium readme.
 
