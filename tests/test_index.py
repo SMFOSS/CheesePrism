@@ -91,7 +91,6 @@ class IndexTestCase(unittest.TestCase):
         time.sleep(0.01)
         
         arch = self.im.archive_from_file(added)
-        import pdb;pdb.set_trace()
         out = self.im.regenerate_leaf(arch.info.name)
 
         assert leafindex.mtime > before_mtime, "%s < %s" %(leafindex.mtime, before_mtime)
