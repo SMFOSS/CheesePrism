@@ -87,13 +87,8 @@ class IndexTestCase(unittest.TestCase):
         added = self.im.path / new_arch.name
 
         before_txt = leafindex.text()
-        before_mtime = leafindex.mtime
-        time.sleep(.1)
-        
         arch = self.im.archive_from_file(added)
         out = self.im.regenerate_leaf(arch.info.name)
-
-        assert leafindex.mtime > before_mtime, "%s < %s" %(leafindex.mtime, before_mtime)
         assert before_txt != leafindex.text()
 
 
