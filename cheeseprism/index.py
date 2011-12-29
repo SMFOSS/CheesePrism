@@ -1,13 +1,13 @@
 """
 Classes, subscribers and functions for dealing with index management
 """
-from cheeseprism import arch
 from cheeseprism import event
 from cheeseprism.desc import updict 
 from path import path
 from pyramid.events import subscriber
 import jinja2
 import logging
+import pkginfo
 import re
 import time
 
@@ -73,7 +73,7 @@ class IndexManager(object):
         projects = {}
         for item in files:
             itempath = self.path / item
-            info = self.extract_info(itempath)
+            info = self.pkginfo_from_file(itempath)
             projects.setdefault(info.name, []).append((info, itempath))
         return sorted(projects.items())
 
@@ -85,12 +85,12 @@ class IndexManager(object):
             homefile, leaves = im.regenerate_all()
             return homefile, leaves
         
-        arch = im.archive_from_file(archive)
-        im.regenerate_leaf(arch.info.name)
+        info = im.pkginfo_from_file(archive)
+        im.regenerate_leaf(info.name)
 
     def regenerate_leaf(self, leafname):
         files = self.path.files('%s-*.*' %leafname)
-        versions = ((self.extract_info(self.path / item), item) for item in files)
+        versions = ((self.pkginfo_from_file(self.path / item), item) for item in files)
         return self.write_leaf(self.path / leafname, versions)
 
     def regenerate_all(self):
@@ -134,17 +134,14 @@ class IndexManager(object):
         if match:
             return match.groupdict()['ext']
 
-    def archive_from_file(self, path):
+    def pkginfo_from_file(self, path):
         ext = self.extension_of(path)
         if ext is not None:
-            if ext in set(('.gz','.tgz', '.bz2')):
-                return arch.TarArchive(path)
-            elif ext in set(('.egg', '.zip')):
-                return arch.ZipArchive(path)
-
-    def extract_info(self, filename):
-        archive = self.archive_from_file(filename)
-        return archive.info
+            if ext in set(('.gz','.tgz', '.bz2', '.zip')):
+                return pkginfo.sdist.SDist(path)
+            elif ext == '.egg':
+                return pkginfo.bdist.BDist(path)
+        raise RuntimeError("Unrecognized extension: %s" %path)
 
 
 regenerate = IndexManager.regenerate
@@ -154,8 +151,8 @@ regenerate = IndexManager.regenerate
 def rebuild_leaf(event):
     path = event.path
     im = event.im
-    archive = im.archive_from_file(path)
-    return im.regenerate_leaf(archive.info.name)
+    info = im.pkginfo_from_file(path)
+    return im.regenerate_leaf(info.name)
 
 
 class EnvFactory(object):

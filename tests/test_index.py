@@ -4,16 +4,10 @@ from mock import patch
 from path import path
 from pprint import pformat as pprint
 import logging
-import pkg_resources
 import textwrap
-import time
 import unittest
 
 logger = logging.getLogger(__name__)
-
-
-
-    
 
 
 class IndexTestCase(unittest.TestCase):
@@ -87,10 +81,9 @@ class IndexTestCase(unittest.TestCase):
         added = self.im.path / new_arch.name
 
         before_txt = leafindex.text()
-        arch = self.im.archive_from_file(added)
-        out = self.im.regenerate_leaf(arch.info.name)
-        assert before_txt != leafindex.text()
-
+        info = self.im.pkginfo_from_file(added)
+        out = self.im.regenerate_leaf(info.name)
+        assert before_txt != out.text()
 
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
