@@ -7,15 +7,10 @@ from pyramid_jinja2 import renderer_factory
 
 
 def main(global_config, **settings):
-    """ This function returns a WSGI application.
-    
-    It is usually called by the PasteDeploy framework during 
-    ``paster serve``.
-    """
     settings.setdefault('jinja2.i18n.domain', 'CheesePrism')
     session_factory = UnencryptedCookieSessionFactoryConfig('cheeseprism')
 
-    config = Configurator(root_factory=App, settings=settings, session_factory = session_factory)
+    config = Configurator(root_factory=App, settings=settings, session_factory=session_factory)
     
     config.add_translation_dirs('locale/')
     config.include('pyramid_jinja2')
