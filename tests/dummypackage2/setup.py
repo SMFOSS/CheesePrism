@@ -1,5 +1,5 @@
-from setuptools import setup, find_packages
-import sys, os
+from setuptools import setup
+from setuptools import find_packages
 
 version = '0.1'
 
@@ -17,9 +17,7 @@ setup(name='dummypackage',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
-      install_requires=[
-          # -*- Extra requirements: -*-
-      ],
+      install_requires=["something_else"],
       entry_points="""
       # -*- Entry points: -*-
       """,
