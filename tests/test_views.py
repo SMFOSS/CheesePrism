@@ -17,6 +17,10 @@ class CPDummyRequest(testing.DummyRequest):
     counter = itertools.count()
     env = None
     test_dir = None
+
+    @property
+    def userid(self):
+        return 'bob'
     
     @property
     def file_root(self):
@@ -115,22 +119,24 @@ class ViewTests(unittest.TestCase):
         request.POST['content'] = ''
         upload(context, request)
 
-    @patch('path.path.write_bytes')
-    def test_upload(self, wb):
-        event_results = {}
-        from cheeseprism.views import upload
+    def setup_event(self):
+        self.event_results = {}
         from cheeseprism.event import IPackageAdded
+        
         @subscriber(IPackageAdded)
         def test_event_fire(event):
-            event_results['fired'] = True
+            self.event_results['fired'] = True
+            
         self.config.add_subscriber(test_event_fire)
+
+    @patch('path.path.write_bytes')
+    @patch('pkginfo.sdist.SDist')
+    def test_upload(self, sdist, wb):
+        from cheeseprism.views import upload
+        self.setup_event()
         context, request = self.base_cr
         request.method = 'POST'
         request.POST['content'] = FakeFS(path('dummypackage/dist/dummypackage-0.0dev.tar.gz'))
         res = upload(context, request)
         assert res.headers == {'X-Swalow-Status': 'SUCCESS'}
-        assert 'fired' in event_results
-        
-
-
-    
+        assert 'fired' in self.event_results
