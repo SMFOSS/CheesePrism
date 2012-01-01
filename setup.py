@@ -11,6 +11,7 @@ requires=['pyramid',
           'pyramid_jinja2',
           'path.py',
           'werkzeug',
+          'requests',
           'pyramid_debugtoolbar',
           'pkginfo']
 
