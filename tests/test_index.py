@@ -36,7 +36,7 @@ class IndexTestCase(unittest.TestCase):
         self.dummypath = self.im.path / dummy.name
 
     def test_regenerate_index(self):
-        home, leaves = self.im.regenerate(self.im.path)
+        home, leaves = self.im.regenerate_all()
         pth = self.im.path
         file_structure = [(x.parent.name, x.name) for x in pth.walk()]
         index_name = u'%s-test-index' %self.count
