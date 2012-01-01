@@ -34,7 +34,7 @@ class IndexManager(object):
                  index_data={}, leaf_data={}):
         self.urlbase = urlbase
         self.template_env = template_env
-        if self.template_env is None:
+        if not self.template_env:
             self.template_env = self.default_env_factory('')
         self.index_data = index_data.copy()            
         self.leaf_data = leaf_data.copy()
@@ -77,17 +77,6 @@ class IndexManager(object):
             projects.setdefault(info.name, []).append((info, itempath))
         return sorted(projects.items())
 
-    @classmethod
-    def regenerate(cls, indexpath, archive=None, template_env=None):
-        logger.info('Regenerate instance')
-        im = cls(indexpath, template_env)
-        if archive is None:
-            homefile, leaves = im.regenerate_all()
-            return homefile, leaves
-        
-        info = im.pkginfo_from_file(archive)
-        im.regenerate_leaf(info.name)
-
     def regenerate_leaf(self, leafname):
         files = self.path.files('%s-*.*' %leafname)
         versions = ((self.pkginfo_from_file(self.path / item), item) for item in files)
@@ -129,13 +118,15 @@ class IndexManager(object):
         url = "%s/%s" %(self.urlbase, archive.name)
         return dict(url=url, name=archive.name)
 
-    def extension_of(self, path):
-        match = self.EXTS.match(path)
+    @classmethod
+    def extension_of(cls, path):
+        match = cls.EXTS.match(path)
         if match:
             return match.groupdict()['ext']
 
-    def pkginfo_from_file(self, path):
-        ext = self.extension_of(path)
+    @classmethod
+    def pkginfo_from_file(cls, path):
+        ext = cls.extension_of(path)
         if ext is not None:
             if ext in set(('.gz','.tgz', '.bz2', '.zip')):
                 return pkginfo.sdist.SDist(path)
@@ -144,15 +135,9 @@ class IndexManager(object):
         raise RuntimeError("Unrecognized extension: %s" %path)
 
 
-regenerate = IndexManager.regenerate
-
-
 @subscriber(event.IPackageAdded)
 def rebuild_leaf(event):
-    path = event.path
-    im = event.im
-    info = im.pkginfo_from_file(path)
-    return im.regenerate_leaf(info.name)
+    return event.im.regenerate_leaf(event.name)
 
 
 class EnvFactory(object):
