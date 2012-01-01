@@ -1,5 +1,4 @@
 from cheeseprism import event
-from cheeseprism import index
 from cheeseprism import pipext
 from cheeseprism import resources
 from cheeseprism import utils
@@ -7,10 +6,11 @@ from path import path
 from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n import TranslationStringFactory
 from pyramid.view import view_config
-from werkzeug import secure_filename
+from urllib2 import HTTPError
+from urllib2 import URLError
 import logging
+import requests
 import tempfile
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +36,10 @@ def upload(context, request):
         raise RuntimeError('No file attached') 
 
     fieldstorage = request.POST['content']
-    dest = path(request.file_root) / secure_filename(fieldstorage.filename)
+    dest = path(request.file_root) / utils.secure_filename(fieldstorage.filename)
 
     dest.write_bytes(fieldstorage.file.read())
-    request.registry.notify(event.PackageAdded(request.index, dest))
+    request.registry.notify(event.PackageAdded(request.index, path=dest))
     request.response.headers['X-Swalow-Status'] = 'SUCCESS'
     return request.response
 
@@ -66,24 +66,18 @@ def package(request):
         url = details['url']
         filename = details['filename']
         try:
-            req = Request(url)
-            f = urlopen(req)
-            print "downloading " + url
-
-        	# Open our local file for writing
-            local_file = open(os.path.join(app.config['FILE_ROOT'],filename), "w")
-            #Write to our local file
-            local_file.write(f.read())
-            local_file.close()
-            print 'finished downloading'
-        #handle errors
+            requests.get(url)
+            newfile = request.file_root / filename
+            newfile.write_text(request.content)
         except HTTPError, e:
-            print "HTTP Error:", e.code , url
+            logger.error("HTTP Error: %s, %s", e.code , url)
         except URLError, e:
-            print "URL Error:", e.reason , url
-        index.regenerate(app.config['FILE_ROOT'])
-        flash('%s-%s was installed into the index successfully.' % (name, version))
-    #@@ would be cool to return to the package in the index
+            logger.error("URL Error: %s, %s", e.reason , url)
+
+        added_event = event.PackageAdded(request.index, path=newfile)
+        request.registry.notify(added_event)            
+        request.session.flash('%s-%s was installed into the index successfully.' % (name, version))
+        return HTTPFound('/index/%s' %name)
     return HTTPFound('/index')
 
 
@@ -97,21 +91,25 @@ def regenerate_index(context, request):
     return {}
 
 
-@view_config(name='requirements', renderer='requirements_upload.html', context=resources.App)
+@view_config(name='load-requirements', renderer='requirements_upload.html', context=resources.App)
 def from_requirements(context, request):
     if request.method == "POST":
-        f = request.files['req_file']
-        
+        req_text = request.POST['req_file'].file.read()
+
         filename = path(tempfile.gettempdir()) / 'temp-req.txt'
-        f.save(filename)
-        try:
-            names = pipext.parse_reqs(filename, request.file_root)
-        except:
-            flash('There were some errors getting files from the uploaded requirements')
-        else:
-            flash('packages were installed from the requirements file. %s' % names)
-        finally:
-            index.regenerate(request.file_root)
+        filename.write_text(req_text)
         
-        return HTTPFound('/requirements')
+        try:
+            import pdb;pdb.set_trace()
+            names = pipext.parse_reqs(filename, request.file_root)
+        except Exception, exception:
+            request.session.flash('There were some errors getting files from the uploaded requirements: %s' %exception)
+        else:
+            request.session.flash('The following packages were installed from the requirements file: %s' % ", ".join(x.project_name for x in names))
+        finally:
+
+            for name in set(n.project_name for n in names):
+                request.registry.notify(event.PackageAdded(request.index, name=name))
+        
+        return HTTPFound('/load-requirements')
     return {}

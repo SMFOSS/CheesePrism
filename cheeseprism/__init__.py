@@ -1,3 +1,4 @@
+from cheeseprism.auth import BasicAuthenticationPolicy
 from cheeseprism.index import EnvFactory
 from cheeseprism.request import CPRequest as Request
 from cheeseprism.resources import App
@@ -10,7 +11,9 @@ def main(global_config, **settings):
     settings.setdefault('jinja2.i18n.domain', 'CheesePrism')
     session_factory = UnencryptedCookieSessionFactoryConfig('cheeseprism')
 
-    config = Configurator(root_factory=App, settings=settings, session_factory=session_factory)
+    config = Configurator(root_factory=App, settings=settings,
+                          session_factory=session_factory,
+                          authentication_policy=BasicAuthenticationPolicy(BasicAuthenticationPolicy.noop_check))
     
     config.add_translation_dirs('locale/')
     config.include('pyramid_jinja2')

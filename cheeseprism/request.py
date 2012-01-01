@@ -2,6 +2,7 @@ from cheeseprism.index import IndexManager
 from path import path
 from pyramid.decorator import reify
 from pyramid.request import Request
+from pyramid.security import unauthenticated_userid
 
 
 class CPRequest(Request):
@@ -10,6 +11,10 @@ class CPRequest(Request):
     """
 
     imclass = IndexManager
+
+    @reify
+    def userid(self):
+        return unauthenticated_userid(self)
 
     @reify
     def settings(self):
@@ -27,3 +32,6 @@ class CPRequest(Request):
     @reify
     def index(self):
         return self.imclass(self.file_root, template_env=self.index_templates)
+
+
+
