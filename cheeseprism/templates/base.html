@@ -17,8 +17,7 @@
 	  <div class="bodywrapper"> 
 	    <div class="body"> 
 	      <div class="section" id="flask-themes"> 
-                {#
-		{% with messages = get_flashed_messages() %}
+		{% set messages = request.session.pop_flash() %}
 		{% if messages %}
 		<div class='note'>
 		  <ul class=flashes>
@@ -28,9 +27,6 @@
 		  </ul>
 		</div>
 		{% endif %}
-		{% endwith %}
-                #}
-		
 		{%block content%}
 		{%endblock%}
 	      </div> 
