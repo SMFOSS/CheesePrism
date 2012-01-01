@@ -6,8 +6,7 @@ version = '0.1'
 setup(name='dummypackage',
       version=version,
       description="",
-      long_description="""\
-""",
+      long_description="",
       classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='',
       author='',

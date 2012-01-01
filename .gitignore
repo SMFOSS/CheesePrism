@@ -7,3 +7,4 @@
 *_flymake.py
 *#*
 tests/test-indexes/*
+/doc/example-index/*
