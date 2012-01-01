@@ -28,9 +28,16 @@ class PackageEvent(object):
     """
     implements(IPackageEvent)
 
-    def __init__(self, index_manager, path):
+    def __init__(self, index_manager, path=None, name=None, version=None):
+        self.name = name
+        self.version = version
         self.im = index_manager
         self.path = path
+
+        if self.name is None and self.path:
+            info = self.im.pkginfo_from_file(path)
+            self.name = info.name
+            self.version = info.version
 
 ##     def redispatch(self):
 ##         self.obj.registry.notify(self, self.obj)
