@@ -37,7 +37,7 @@ setup(name='CheesePrism',
       test_suite="cheeseprism",
       entry_points = """\
       [paste.app_factory]
-      main = cheeseprism:main
+      main = cheeseprism.wsgiapp:main
       """,
       paster_plugins=['pyramid'],
       )
