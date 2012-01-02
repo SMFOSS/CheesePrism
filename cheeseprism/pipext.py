@@ -33,11 +33,11 @@ class RequirementDownloader(object):
     options = type('Options', (), dict(skip_requirements_regex='',
                                        default_vcs=''))
 
-    @classmethod
-    def all_from_file(cls, filename, download_dir):
-        rs, finder = cls.req_set_from_file(filename, download_dir)
-        rd = cls(rs)
-        return rd.download_all()
+##     @classmethod
+##     def all_from_file(cls, filename, download_dir):
+##         rs, finder = cls.req_set_from_file(filename, download_dir)
+##         rd = cls(rs)
+##         return rd.download_all()
 
     @classmethod
     def req_set_from_file(cls, filename, download_dir, deplinks=None):
@@ -149,13 +149,10 @@ class RequirementDownloader(object):
             finder = self.finder or self.package_finder(None)
         initial = set(req_set.requirements.values())
         for req in initial ^ self.seen:
-            try:
-                output = self.handle_requirement(req, finder)
-            except :
-                import pdb, sys; pdb.post_mortem(sys.exc_info()[2])
-            self.seen.add(req)
+            output = self.handle_requirement(req, finder)
             if output is None:
                 continue
+            self.seen.add(req)
             pkginfo, outfile, req_set = output
             yield pkginfo, outfile
             if req_set is not None:
@@ -171,7 +168,6 @@ class RequirementDownloader(object):
         if deplinks:
             finder.add_dependency_links(deplinks)
         return finder
-
 
 
 def parse_reqs(filename, download_dir):
