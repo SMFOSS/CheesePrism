@@ -20,11 +20,11 @@ class RequirementDownloader(object):
     pkginfo_from_file = IndexManager.pkginfo_from_file
     parse_requirements = staticmethod(parse_requirements)
 
-    def __init__(self, req_set, download_dir=None, finder=None, upgrade=False):
+    def __init__(self, req_set, finder=None, upgrade=False):
+        #@@ start with req_set??
         self.req_set = req_set
         self.upgrade = False
-        if download_dir is None:
-            download_dir = req_set.download_dir
+        download_dir = req_set.download_dir
         self.download_dir = path(download_dir)
         self.finder = finder
         self.seen = set()
@@ -72,7 +72,10 @@ class RequirementDownloader(object):
 
     @staticmethod
     def find_file(names, tail):
-        return next(n for n in names if n.endswith(tail))
+        try:
+            return next(n for n in names if n.endswith(tail))
+        except StopIteration:
+            return None
         
     @classmethod
     def depinfo_for_file(cls, filename):
@@ -84,8 +87,10 @@ class RequirementDownloader(object):
             archive = tarfile.TarFile.open(filename)
             names = archive.getnames()
             read = partial(cls.readtar, archive)
-        deplinks = read(cls.find_file(names, '.egg-info/dependency_links.txt'))
-        requires = read(cls.find_file(names, '.egg-info/requires.txt'))
+        dl_file = cls.find_file(names, '.egg-info/dependency_links.txt')
+        reqs_file = cls.find_file(names, '.egg-info/requires.txt')        
+        deplinks = dl_file and read(dl_file) or ''
+        requires = reqs_file and read(reqs_file) or ''
         return [x.strip() for x in deplinks.split('\n') if x],\
                [x.strip() for x in requires.split('\n') if x]
 
@@ -129,9 +134,9 @@ class RequirementDownloader(object):
         
         content = "\n".join(reqs)
         pkg = "%s-%s" %(pkginfo.name, pkginfo.version)
-        req_set = self.req_set_from_file(self.temp_req(pkg, content),
-                                         self.download_dir,
-                                         deplinks=deplinks)
+        req_set, _ = self.req_set_from_file(self.temp_req(pkg, content),
+                                            self.download_dir,
+                                            deplinks=deplinks)
         return pkginfo, outfile, req_set,
 
     pkg_finder_class = PackageFinder
