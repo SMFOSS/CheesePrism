@@ -11,7 +11,6 @@ import tarfile
 import tempfile
 import zipfile
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -20,14 +19,15 @@ class RequirementDownloader(object):
     pkginfo_from_file = IndexManager.pkginfo_from_file
     parse_requirements = staticmethod(parse_requirements)
 
-    def __init__(self, req_set, finder=None, upgrade=False):
+    def __init__(self, req_set, finder=None, upgrade=False, seen=None):
         #@@ start with req_set??
         self.req_set = req_set
         self.upgrade = False
         download_dir = req_set.download_dir
         self.download_dir = path(download_dir)
         self.finder = finder
-        self.seen = set()
+        if seen is None:
+            self.seen = set()
         self.errors = {}
 
     options = type('Options', (), dict(skip_requirements_regex='',
@@ -92,11 +92,12 @@ class RequirementDownloader(object):
         deplinks = dl_file and read(dl_file) or ''
         requires = reqs_file and read(reqs_file) or ''
         return [x.strip() for x in deplinks.split('\n') if x],\
-               [x.strip() for x in requires.split('\n') if x]
+               [x.strip() for x in requires.split('\n') if x and not x.startswith('[')]
 
     def download_url(self, link):
         target_url = link.url.split('#', 1)[0]
         resp = requests.get(target_url)
+        logger.info('Downloading: %s' %target_url)
         outfile = self.download_dir / link.filename
         outfile.write_bytes(resp.content)
         # requests.iter_content
@@ -106,6 +107,7 @@ class RequirementDownloader(object):
     def temp_req(self, name, content=None):
         fp = path(tempfile.gettempdir()) / ('temp-req-%s.txt' %name)
         if content:
+            logger.debug(content)
             fp.write_text(content)
         return fp
 
@@ -119,7 +121,11 @@ class RequirementDownloader(object):
             logger.warn(msg)
             self.errors[req] = msg
             return
+
         url = finder.find_requirement(req, self.upgrade)
+        if url.md5_hash in self.seen:
+            return 
+            
         try:
             pkginfo, outfile = self.download_url(url)
         except HTTPError, e:
@@ -128,6 +134,7 @@ class RequirementDownloader(object):
             self.errors[req] = msg
             return
 
+        self.seen.add(outfile.read_md5().encode('hex'))
         deplinks, reqs = self.depinfo_for_file(outfile)
         if not reqs:
             return pkginfo, outfile, None
@@ -147,8 +154,8 @@ class RequirementDownloader(object):
             req_set = self.req_set
         if finder is None:
             finder = self.finder or self.package_finder(None)
-        initial = set(req_set.requirements.values())
-        for req in initial ^ self.seen:
+
+        for req in req_set.requirements.values():
             output = self.handle_requirement(req, finder)
             if output is None:
                 continue
@@ -156,6 +163,7 @@ class RequirementDownloader(object):
             pkginfo, outfile, req_set = output
             yield pkginfo, outfile
             if req_set is not None:
+                logger.info("Dependencies determined: %s" %req_set.requirements.keys())
                 for pkginfo, outfile in self.download_all(req_set, finder):
                     yield pkginfo, outfile
 
@@ -172,5 +180,5 @@ class RequirementDownloader(object):
 
 def parse_reqs(filename, download_dir):
     requirement_set, finder = RequirementDownloader.req_set_from_file(filename, download_dir)
-    requirement_set.prepare_files(finder, force_root_egg_info=False, bundle=False)
-    return requirement_set.requirements.keys()
+    downloader = RequirementDownloader(requirement_set, finder).download_all()
+    return [pkgi.name for pkgi, outfile in downloader]
