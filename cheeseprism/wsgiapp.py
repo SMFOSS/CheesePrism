@@ -25,4 +25,5 @@ def main(global_config, **settings):
     config.set_request_factory(Request)
     config.add_route('package', 'package/{name}/{version}', view='cheeseprism.views.package')
     settings['index_templates'] = EnvFactory.from_str(settings['cheeseprism.index_templates'])
-    return config.make_wsgi_app()    
+
+    return config.make_wsgi_app()
