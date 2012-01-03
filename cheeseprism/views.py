@@ -2,6 +2,7 @@ from cheeseprism import event
 from cheeseprism import pipext
 from cheeseprism import resources
 from cheeseprism import utils
+from cheeseprism.rpc import PyPi
 from path import path
 from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n import TranslationStringFactory
@@ -12,7 +13,9 @@ import logging
 import requests
 import tempfile
 
+
 logger = logging.getLogger(__name__)
+
 
 _ = TranslationStringFactory('CheesePrism')
 
@@ -39,7 +42,7 @@ def upload(context, request):
     dest = path(request.file_root) / utils.secure_filename(fieldstorage.filename)
 
     dest.write_bytes(fieldstorage.file.read())
-    request.registry.notify(event.PackageAdded(request.index, path=dest))
+    request.index.update_by_request(request)
     request.response.headers['X-Swalow-Status'] = 'SUCCESS'
     return request.response
 
@@ -50,14 +53,11 @@ def find_package(context, request):
     search_term = None
     if request.method == "POST":
         search_term = request.POST['search_box']
-        releases = utils.search_pypi(search_term)
+        releases = PyPi.search(search_term)
     return dict(releases=releases, search_term=search_term)
 
 
 def package(request):
-    """
-    refactor to use http://docs.python-requests.org/en/latest/index.html
-    """
     name = request.matchdict['name']
     version = request.matchdict['version']
     details = utils.package_details(name, version)
@@ -98,18 +98,14 @@ def from_requirements(context, request):
 
         filename = path(tempfile.gettempdir()) / 'temp-req.txt'
         filename.write_text(req_text)
-        
-        try:
-            import pdb;pdb.set_trace()
-            names = pipext.parse_reqs(filename, request.file_root)
-        except Exception, exception:
-            request.session.flash('There were some errors getting files from the uploaded requirements: %s' %exception)
-        else:
-            request.session.flash('The following packages were installed from the requirements file: %s' % ", ".join(x.project_name for x in names))
-        finally:
-
-            for name in set(n.project_name for n in names):
-                request.registry.notify(event.PackageAdded(request.index, name=name))
-        
+        names = []
+        requirement_set, finder = pipext.RequirementDownloader.req_set_from_file(filename, request.file_root)
+        downloads = pipext.RequirementDownloader(requirement_set, finder).download_all()
+        for pkginfo, outfile in downloads:
+            name = pkginfo.name
+            names.append(name)
+        request.index.update_by_request(request)
+        request.session.flash('The following packages were installed from the requirements file: %s' % ", ".join(names))        
         return HTTPFound('/load-requirements')
     return {}
+
