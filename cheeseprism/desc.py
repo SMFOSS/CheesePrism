@@ -17,3 +17,19 @@ class updict(dict):
     def __delete__(self, obj):
         self.clear()
         self.update(self.default)
+
+
+class template(object):
+    """
+    A little descriptor for returning templates from jinja env.
+    """
+    env_method = 'template_env'
+    def __init__(self, name):
+        self.name = name
+
+    def get_env(self, obj):
+        return getattr(obj, self.env_method, None)
+
+    def __get__(self, obj, objtype):
+        env = self.get_env(obj)
+        return env.get_template(self.name)
