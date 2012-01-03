@@ -2,8 +2,17 @@ from zope.interface import Attribute
 from zope.interface import Interface
 from zope.interface import implements
 
+class IIndexEvent(Interface):
+    """
+    An lower level event involving the index
+    """
 
-class IPackageEvent(Interface):
+class IIndexUpdate(Interface):
+    """
+    An low level event involving the index
+    """
+
+class IPackageEvent(IIndexEvent):
     """
     An event involving a package
     """
@@ -20,6 +29,17 @@ class IPackageRemoved(IPackageEvent):
     """
     A package is removed to the repository
     """    
+
+
+class IndexEvent(object):
+    implements(IIndexEvent)
+    def __init__(self, datafile, index):
+        self.index = index
+        self.datafile = datafile
+
+
+class IndexUpdate(IndexEvent):
+    implements(IIndexUpdate)
 
 
 class PackageEvent(object):
@@ -57,3 +77,5 @@ class PackageAdded(PackageEvent):
     
 class PackageRemoved(PackageEvent):
     implements(IPackageRemoved)
+
+
