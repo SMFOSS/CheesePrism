@@ -3,7 +3,7 @@ from path import path
 
 
 def test_envfactory_makes_loaders():
-    from cheeseprism import EnvFactory
+    from cheeseprism.index import EnvFactory
     env = EnvFactory.from_str('pkg:cheeseprism pkg:cheeseprism#templates/fake file:/tmp/ %s' %path(__file__).parent)
     assert isinstance(env.loader, jinja2.loaders.ChoiceLoader)
     assert len(env.loader.loaders) == 5
