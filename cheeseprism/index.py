@@ -2,13 +2,18 @@
 Classes, subscribers and functions for dealing with index management
 """
 from cheeseprism import event
-from cheeseprism.desc import updict 
+from cheeseprism.desc import template
+from cheeseprism.desc import updict
 from path import path
+from pyramid.events import ApplicationCreated
 from pyramid.events import subscriber
+from pyramid.threadlocal import get_current_registry
 import jinja2
+import json
 import logging
 import pkginfo
 import re
+import threading
 import time
 
 logger = logging.getLogger(__name__)
@@ -29,7 +34,8 @@ class IndexManager(object):
     index_data = updict(title=def_index_title,
                         index_title=def_index_title,
                         description="Welcome to the CheesePrism")
-
+    index_data_lock = threading.Lock()
+    
     def __init__(self, index_path, template_env=None, urlbase='..',
                  index_data={}, leaf_data={}):
         self.urlbase = urlbase
@@ -41,21 +47,6 @@ class IndexManager(object):
         self.path = path(index_path)
         if not self.path.exists():
             self.path.makedirs()        
-
-    class template(object):
-        """
-        A little descriptor for returning templates from jinja env.
-        """
-        env_method = 'template_env'
-        def __init__(self, name):
-            self.name = name
-
-        def get_env(self, obj):
-            return getattr(obj, self.env_method, None)
-        
-        def __get__(self, obj, objtype):
-            env = self.get_env(obj)
-            return env.get_template(self.name)
 
     leaf_template = template('leaf.html')
     home_template = template('home.html')
@@ -134,10 +125,72 @@ class IndexManager(object):
                 return pkginfo.bdist.BDist(path)
         raise RuntimeError("Unrecognized extension: %s" %path)
 
+    def update_by_request(self, request):
+        request.registry.notify(event.IndexUpdate(request.index_data_path, request.index))
+
+    def update_data(self, datafile):
+        start = time.time()
+        data = {}
+        if datafile.exists():
+            with open(datafile) as stream:
+                data = json.load(stream)
+
+        with self.index_data_lock:
+            new = []
+            for arch in self.files:
+                md5 = arch.read_md5().encode('hex')
+                if not arch.exists():
+                    del data[md5]
+
+                if md5 not in data:
+                    #@@ fire new package event...
+                    logger.info("New package: %s %s" %(str(arch), md5))
+                    pkgi = self.pkginfo_from_file(arch)
+                    data[md5] = dict(name=pkgi.name,
+                                     version=pkgi.version,
+                                     filename=str(arch.name),
+                                     added=start)
+                    new.append(arch)
+
+            pkgs = len(set(x[0] for x in data.values()))
+            logger.info("Inspected %s versions for %s packages" %(len(data), pkgs))
+            with open(datafile, 'w') as root:
+                json.dump(data, root)
+                
+        elapsed = time.time() - start
+        logger.info("Generate json representation of index in %s seconds" %elapsed)
+        return new
+
 
 @subscriber(event.IPackageAdded)
 def rebuild_leaf(event):
     return event.im.regenerate_leaf(event.name)
+
+
+@subscriber(event.IIndexUpdate)
+def bulk_update_index(event):
+    new_pkgs = event.index.update_data(event.datafile)
+    reg = get_current_registry()
+    for name, version in new_pkgs:
+        reg.notify(event.IPackageAdded(name=name, version=version))
+
+
+@subscriber(ApplicationCreated)
+def bulk_update_index_at_start(event):
+    reg = event.app.registry
+    settings = reg.settings
+    file_root = path(settings['cheeseprism.file_root'])
+
+    if not file_root.exists():
+        file_root.makedirs()
+
+    datafile = file_root / settings['cheeseprism.data_json']
+
+    template_env = settings['cheeseprism.index_templates']
+    index = IndexManager(file_root, template_env=template_env)
+    new_pkgs = index.update_data(datafile)
+    for name, version in new_pkgs:
+        reg.notify(event.IPackageAdded(name=name, version=version))
 
 
 class EnvFactory(object):
