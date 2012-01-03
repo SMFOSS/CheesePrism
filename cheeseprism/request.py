@@ -3,6 +3,7 @@ from path import path
 from pyramid.decorator import reify
 from pyramid.request import Request
 from pyramid.security import unauthenticated_userid
+import json
 
 
 class CPRequest(Request):
@@ -33,5 +34,11 @@ class CPRequest(Request):
     def index(self):
         return self.imclass(self.file_root, template_env=self.index_templates)
 
+    @reify
+    def index_data_path(self):
+        return self.registry.settings['cheeseprism.data_json']
 
-
+    @reify
+    def index_data(self):
+        return json.load(self.registry.settings['cheeseprism.data_json'])
+    
