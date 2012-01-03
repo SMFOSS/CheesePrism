@@ -2,11 +2,13 @@ from cheeseprism.utils import resource_spec
 from itertools import count
 from mock import Mock
 from mock import patch
+from nose.tools import raises
 from path import path
+from pip.index import Link
 from pprint import pformat as pp
 from urllib2 import HTTPError
-import pkginfo
 import logging
+import pkginfo
 import unittest
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,8 @@ class PipExtBase(unittest.TestCase):
     def setUp(self):
         self.count = next(self.counter)
         self.download_dir = self.base / ("%s-%s" %(self.count, 'req-dl'))
+        if not self.download_dir.exists():
+            self.download_dir.makedirs()
         
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
@@ -50,6 +54,9 @@ class PipExtBase(unittest.TestCase):
 
 
 class TestReqDownloader(PipExtBase):
+    """
+    Catch all coverage tests for RequirementsDownloader
+    """
     def test_init(self):
         """
         Sanity test creation
@@ -61,6 +68,42 @@ class TestReqDownloader(PipExtBase):
         self.download_dir = None
         rd = self.makeone(dd='')
 
+    @patch('requests.get')
+    def test_download_url(self, mockget):
+        mockget.return_value = Mock()
+        mockget.return_value.content = self.dists['dp'].bytes() 
+        rd = self.makeone()
+        pinfo, outfile = rd.download_url(Link('http://fakeurl.com/dummypackage.tar.gz#egg=dummypackage'))
+        assert outfile.exists()
+        assert pinfo.name == 'dummypackage'
+
+    def test_readzip(self):
+        rd = self.makeone()
+        archive, name = Mock(), 'blah'
+        out = rd.readzip(archive, name)
+        assert out
+        method, args, _ = archive.method_calls[0]
+        assert method == 'read'
+        assert args == (name,)
+
+    @patch('zipfile.ZipFile')
+    def test_depinfo_for_zip(self, zfmock):
+        from cheeseprism import pipext
+        zfmock.return_value = ZFMock()
+        assert pipext.RequirementDownloader.depinfo_for_file('fake.zip') == ([], [])
+
+    def test_package_finder_cm(self):
+        from cheeseprism import pipext
+        pf = pipext.RequirementDownloader.package_finder
+        finder = pf(deplinks=['a deplink'], index_urls=['an index_url'])
+        assert finder.dependency_links == ['a deplink']
+        assert finder.index_urls == ['http://pypi.python.org/simple', 'an index_url']
+
+
+class ZFMock(Mock):
+    namelist = lambda self: []
+    read = lambda self, name : ""
+    
 
 @patch('cheeseprism.pipext.RequirementDownloader.download_url')
 class TestReqDownloaderHandler(PipExtBase):
@@ -68,7 +111,7 @@ class TestReqDownloaderHandler(PipExtBase):
     @property
     def mock_finder(self):
         finder = Mock()
-        finder.find_requirement.return_value = 'http://pkgurl'
+        finder.find_requirement.return_value = Link('http://pkgurl/pkg.tar.gz#md5=12345')
         return finder
     
     def raise_http_error(self, url, *args, **kw):
@@ -77,6 +120,13 @@ class TestReqDownloaderHandler(PipExtBase):
     def get_pkginfo(self, dist):
         pkg = self.dists[dist]
         return pkginfo.sdist.SDist(pkg)
+
+    def test_handle_requirement_editable(self, download_url):
+        rd = self.makeone()
+        req = rd.req_set.requirements.values().pop()
+        req.editable = True
+        assert rd.handle_requirement(req, self.mock_finder) is None
+        assert req in rd.errors
 
     def test_handle_requirement_httperror(self, download_url):
         rd = self.makeone()
@@ -104,3 +154,34 @@ class TestReqDownloaderHandler(PipExtBase):
         assert deps.requirements.keys() == ['something-else'], deps.requirements.keys()
 
 
+@patch('cheeseprism.pipext.RequirementDownloader.handle_requirement')
+class TestReqDownloaderAll(PipExtBase):
+
+    @raises(StopIteration)
+    def test_download_all_nothing(self, handle):
+        handle.return_value = None
+        rd = self.makeone()
+        next(rd.download_all())
+
+    def test_download_single_pkg(self, handle):
+        marker = object()
+        handle.return_value = marker, marker, None, 
+        rd = self.makeone()
+        output = [x for x in rd.download_all()]
+        assert len(output) == 1
+        assert output[0] == (marker, marker)
+
+    def test_download_w_deps(self, handle):
+        marker1 = object()
+        handle.return_value = marker1, marker1, RSMock, 
+        rd = self.makeone()
+
+        out_gen = rd.download_all()
+        assert next(out_gen) == (marker1, marker1)
+        
+        marker2 = object()
+        handle.return_value = marker2, marker2, None,         
+        assert next(out_gen) == (marker2, marker2)
+
+class RSMock(Mock):
+    requirements = dict(something_else="something_else_requirement")

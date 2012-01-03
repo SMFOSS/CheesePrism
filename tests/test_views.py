@@ -13,10 +13,9 @@ import unittest
 
 
 class CPDummyRequest(testing.DummyRequest):
-    settings = {}
+    test_dir = None
     counter = itertools.count()
     env = None
-    test_dir = None
 
     @property
     def userid(self):
@@ -43,6 +42,10 @@ class CPDummyRequest(testing.DummyRequest):
     @reify
     def response(self):
         return DummyResponse()
+
+    @reify
+    def index_data_path(self):
+        return self.file_root / 'data.json'
     
 
 class DummyResponse(object):
@@ -57,6 +60,11 @@ class FakeFS(object):
         self.file.read.return_value = "Some gzip binary"
 
 
+def test_instructions():
+    from cheeseprism.views import instructions
+    assert instructions(None, None)
+
+
 class ViewTests(unittest.TestCase):
 
     def setUp(self):
@@ -68,7 +76,7 @@ class ViewTests(unittest.TestCase):
             CPDummyRequest.test_dir.rmtree()
             CPDummyRequest.test_dir = None
 
-    @patch('cheeseprism.utils.search_pypi')
+    @patch('cheeseprism.rpc.PyPi.search')
     def test_find_package(self, search_pypi):
         search_pypi.return_value = ['1.3a2']
         from cheeseprism.views import find_package
