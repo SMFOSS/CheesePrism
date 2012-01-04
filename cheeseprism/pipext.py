@@ -1,6 +1,7 @@
 from cheeseprism.index import IndexManager
 from functools import partial
 from path import path
+from pip.exceptions import DistributionNotFound
 from pip.index import PackageFinder
 from pip.locations import build_prefix, src_prefix
 from pip.req import RequirementSet, parse_requirements
@@ -10,6 +11,7 @@ import requests
 import tarfile
 import tempfile
 import zipfile
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +28,15 @@ class RequirementDownloader(object):
         download_dir = req_set.download_dir
         self.download_dir = path(download_dir)
         self.finder = finder
-        if seen is None:
+        self.seen = seen
+        self.skip = []
+        if self.seen is None:
             self.seen = set()
-        self.errors = {}
+        self.errors = []
 
+    # toupe for pip
     options = type('Options', (), dict(skip_requirements_regex='',
                                        default_vcs=''))
-
-##     @classmethod
-##     def all_from_file(cls, filename, download_dir):
-##         rs, finder = cls.req_set_from_file(filename, download_dir)
-##         rd = cls(rs)
-##         return rd.download_all()
 
     @classmethod
     def req_set_from_file(cls, filename, download_dir, deplinks=None):
@@ -107,7 +106,7 @@ class RequirementDownloader(object):
     def temp_req(self, name, content=None):
         fp = path(tempfile.gettempdir()) / ('temp-req-%s.txt' %name)
         if content:
-            logger.debug(content)
+            logger.debug("Reqs for %s:\n%s", name, content)
             fp.write_text(content)
         return fp
 
@@ -119,11 +118,20 @@ class RequirementDownloader(object):
         if req.editable:
             msg = "Editables not supported: %s" %req
             logger.warn(msg)
-            self.errors[req] = msg
+            self.errors.append("%s: %s" %(req, msg)) 
             return
 
-        url = finder.find_requirement(req, self.upgrade)
+        try:
+            url = finder.find_requirement(req, self.upgrade)
+        except DistributionNotFound:
+            msg = "No distribution found for %s" %req.name
+            logger.warn(msg)
+            self.errors.append(msg)
+            return
+        
         if url.md5_hash in self.seen:
+            logger.debug('Seen: %s', url)
+            self.skip.append(url)
             return 
             
         try:
@@ -131,7 +139,14 @@ class RequirementDownloader(object):
         except HTTPError, e:
             msg = "Issue with download: %s" %e
             logger.error(msg)
-            self.errors[req] = msg
+            self.errors.append("%s: %s" %(req, msg)) 
+            return
+        except TypeError:
+            raise
+        except Exception, e:
+            msg = "Issue with archive: %s" %e
+            logger.error(msg)
+            self.errors.append("%s: %s" %(req, msg)) 
             return
 
         self.seen.add(outfile.read_md5().encode('hex'))
@@ -178,7 +193,4 @@ class RequirementDownloader(object):
         return finder
 
 
-def parse_reqs(filename, download_dir):
-    requirement_set, finder = RequirementDownloader.req_set_from_file(filename, download_dir)
-    downloader = RequirementDownloader(requirement_set, finder).download_all()
-    return [pkgi.name for pkgi, outfile in downloader]
+
