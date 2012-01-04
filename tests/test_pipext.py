@@ -4,7 +4,9 @@ from mock import Mock
 from mock import patch
 from nose.tools import raises
 from path import path
+from pip.exceptions import DistributionNotFound
 from pip.index import Link
+from pip.index import PackageFinder
 from pprint import pformat as pp
 from urllib2 import HTTPError
 import logging
@@ -110,7 +112,7 @@ class TestReqDownloaderHandler(PipExtBase):
 
     @property
     def mock_finder(self):
-        finder = Mock()
+        finder = Mock(spec_set=PackageFinder)
         finder.find_requirement.return_value = Link('http://pkgurl/pkg.tar.gz#md5=12345')
         return finder
     
@@ -121,19 +123,32 @@ class TestReqDownloaderHandler(PipExtBase):
         pkg = self.dists[dist]
         return pkginfo.sdist.SDist(pkg)
 
-    def test_handle_requirement_editable(self, download_url):
+    def test_editable_req_error(self, download_url):
         rd = self.makeone()
         req = rd.req_set.requirements.values().pop()
         req.editable = True
         assert rd.handle_requirement(req, self.mock_finder) is None
-        assert req in rd.errors
+        assert rd.errors
+        assert 'Editable' in rd.errors[0]
 
+    def raise_distnotfound(self, *args, **kw):
+        raise DistributionNotFound("not found")
+
+    def test_distribution_notfound_error(self, download_url):
+        finder = self.mock_finder
+        rd = self.makeone()
+        finder.find_requirement.side_effect = self.raise_distnotfound
+        req = rd.req_set.requirements.values().pop()
+        download_url.return_value = (self.get_pkginfo('dp'), self.dists['dp']) # for failing test
+        assert rd.handle_requirement(req, finder) is None
+        
     def test_handle_requirement_httperror(self, download_url):
         rd = self.makeone()
         req = rd.req_set.requirements.values().pop()
         download_url.side_effect = self.raise_http_error
         assert rd.handle_requirement(req, self.mock_finder) is None
-        assert req in rd.errors
+        assert rd.errors
+        assert 'download' in rd.errors[0]
 
     def test_handle_requirement_noreqs(self, download_url):
         rd = self.makeone()
