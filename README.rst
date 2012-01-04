@@ -63,7 +63,7 @@ To run the tests::
 Prod
 ----
 
-`CheesePrism` doesn't pretend that it or python servers excell at
+`CheesePrism` doesn't pretend that it or python servers excel at
 serving flat files.
 
 For a more durable and performing setup, you will want to split the
