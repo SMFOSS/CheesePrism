@@ -16,6 +16,7 @@ import re
 import threading
 import time
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -128,14 +129,17 @@ class IndexManager(object):
     def update_by_request(self, request):
         request.registry.notify(event.IndexUpdate(request.index_data_path, request.index))
 
-    def update_data(self, datafile):
-        start = time.time()
-        data = {}
+    def data_from_path(self, datafile):
+        datafile = path(datafile)
         if datafile.exists():
             with open(datafile) as stream:
-                data = json.load(stream)
+                return json.load(stream)
+        return {}
 
+    def update_data(self, datafile):
+        start = time.time()
         with self.index_data_lock:
+            data = self.data_from_path(datafile)
             new = []
             for arch in self.files:
                 md5 = arch.read_md5().encode('hex')
@@ -146,13 +150,14 @@ class IndexManager(object):
                     #@@ fire new package event...
                     logger.info("New package: %s %s" %(str(arch), md5))
                     pkgi = self.pkginfo_from_file(arch)
-                    data[md5] = dict(name=pkgi.name,
-                                     version=pkgi.version,
-                                     filename=str(arch.name),
-                                     added=start)
-                    new.append(arch)
+                    pkgdata = dict(name=pkgi.name,
+                                   version=pkgi.version,
+                                   filename=str(arch.name),
+                                   added=start)
+                    data[md5] = pkgdata
+                    new.append(pkgdata)
 
-            pkgs = len(set(x[0] for x in data.values()))
+            pkgs = len(set(x['name'] for x in data.values()))
             logger.info("Inspected %s versions for %s packages" %(len(data), pkgs))
             with open(datafile, 'w') as root:
                 json.dump(data, root)
@@ -170,10 +175,15 @@ def rebuild_leaf(event):
 @subscriber(event.IIndexUpdate)
 def bulk_update_index(event):
     new_pkgs = event.index.update_data(event.datafile)
-    reg = get_current_registry()
-    for name, version in new_pkgs:
-        reg.notify(event.IPackageAdded(name=name, version=version))
+    notify_packages_added(new_pkgs)
 
+
+def notify_packages_added(new_pkgs, reg=None):
+    if reg is None:
+        reg = get_current_registry()
+
+    for data in new_pkgs:
+        reg.notify(event.PackageAdded(name=data['name'], version=data['version']))        
 
 @subscriber(ApplicationCreated)
 def bulk_update_index_at_start(event):
@@ -189,8 +199,8 @@ def bulk_update_index_at_start(event):
     template_env = settings['cheeseprism.index_templates']
     index = IndexManager(file_root, template_env=template_env)
     new_pkgs = index.update_data(datafile)
-    for name, version in new_pkgs:
-        reg.notify(event.IPackageAdded(name=name, version=version))
+
+    notify_packages_added(new_pkgs, reg)    
 
 
 class EnvFactory(object):
