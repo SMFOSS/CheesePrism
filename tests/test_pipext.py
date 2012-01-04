@@ -112,8 +112,9 @@ class TestReqDownloaderHandler(PipExtBase):
 
     @property
     def mock_finder(self):
+        self.link = Link('http://pkgurl/pkg.tar.gz#md5=12345')
         finder = Mock(spec_set=PackageFinder)
-        finder.find_requirement.return_value = Link('http://pkgurl/pkg.tar.gz#md5=12345')
+        finder.find_requirement.return_value = self.link
         return finder
     
     def raise_http_error(self, url, *args, **kw):
@@ -141,13 +142,51 @@ class TestReqDownloaderHandler(PipExtBase):
         req = rd.req_set.requirements.values().pop()
         download_url.return_value = (self.get_pkginfo('dp'), self.dists['dp']) # for failing test
         assert rd.handle_requirement(req, finder) is None
+
+    def basic_prep(self, download_url):
+        rd = self.makeone()
+        req = rd.req_set.requirements.values().pop()
+        download_url.return_value = (self.get_pkginfo('dp'), self.dists['dp'])
+        return rd, req
+        
+    def test_skip(self, download_url):
+        rd, req = self.basic_prep(download_url)
+        finder = self.mock_finder
+        rd.seen.add(self.link.md5_hash)
+        assert rd.handle_requirement(req, finder) is None
+
+    @raises(TypeError)
+    def test_typeerror_raise(self, download_url):
+        """
+        Testing formality to make sure our diaper does not hide our
+        mocks.
+        """
+        rd, req = self.basic_prep(download_url)
+        download_url.side_effect = TypeError('Kaboom')
+        assert rd.handle_requirement(req, self.mock_finder) is None
+
+    def test_general_download_exception(self, download_url):
+        """
+        Check the diaper records what is dumped into it.
+
+        At this point in `handle_requirements`, weird stuff happens
+        with peoples distributions.  We can't save the world, but we
+        can catch their crap and let the rest of the downloads
+        continue.
+        """
+        rd, req = self.basic_prep(download_url)
+        download_url.side_effect = Exception('Kaboom')
+        assert rd.handle_requirement(req, self.mock_finder) is None
+        assert len(rd.errors) == 1
+        assert 'archive' in rd.errors[0]
+        
         
     def test_handle_requirement_httperror(self, download_url):
         rd = self.makeone()
         req = rd.req_set.requirements.values().pop()
         download_url.side_effect = self.raise_http_error
         assert rd.handle_requirement(req, self.mock_finder) is None
-        assert rd.errors
+        assert len(rd.errors) == 1
         assert 'download' in rd.errors[0]
 
     def test_handle_requirement_noreqs(self, download_url):
