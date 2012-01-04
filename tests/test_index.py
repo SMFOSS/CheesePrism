@@ -1,6 +1,8 @@
 from cheeseprism.utils import resource_spec
 from itertools import count
+from mock import Mock
 from mock import patch
+from nose.tools import raises
 from path import path
 from pprint import pformat as pprint
 import logging
@@ -9,6 +11,7 @@ import unittest
 
 logger = logging.getLogger(__name__)
 
+here = path(__file__).parent
 
 class IndexTestCase(unittest.TestCase):
     counter = count()
@@ -34,6 +37,9 @@ class IndexTestCase(unittest.TestCase):
         dummy = path(__file__).parent / "dummypackage/dist/dummypackage-0.0dev.tar.gz"
         dummy.copy(self.im.path)
         self.dummypath = self.im.path / dummy.name
+
+    def test_data_from_path(self):
+        assert self.im.data_from_path(here / 'index.json') == {}
 
     def test_regenerate_index(self):
         home, leaves = self.im.regenerate_all()
@@ -84,6 +90,27 @@ class IndexTestCase(unittest.TestCase):
         info = self.im.pkginfo_from_file(added)
         out = self.im.regenerate_leaf(info.name)
         assert before_txt != out.text()
+
+    @patch('pkginfo.bdist.BDist', new=Mock(return_value=True))
+    def test_pkginfo_from_file_egg(self):
+        from cheeseprism.index import IndexManager
+        assert IndexManager.pkginfo_from_file('blah.egg') is True
+
+    @patch('pkginfo.sdist.SDist', new=Mock(return_value=True))
+    def test_pkginfo_from_file_sdist(self):
+        from cheeseprism.index import IndexManager
+        for ext in ('.gz','.tgz', '.bz2', '.zip'):
+            assert IndexManager.pkginfo_from_file('blah.%s' %ext) is True
+
+    @raises(RuntimeError)
+    def test_pkginfo_from_bad_ext(self):
+        from cheeseprism.index import IndexManager
+        IndexManager.pkginfo_from_file('adfasdkfha.adkfhalsdk')
+
+    @raises(RuntimeError)
+    def test_pkginfo_from_no_ext(self):
+        from cheeseprism.index import IndexManager
+        IndexManager.pkginfo_from_file('adfasdkfha')        
 
     def tearDown(self):
         logger.debug("teardown: %s", self.count)

@@ -185,6 +185,7 @@ def notify_packages_added(new_pkgs, reg=None):
     for data in new_pkgs:
         reg.notify(event.PackageAdded(name=data['name'], version=data['version']))        
 
+
 @subscriber(ApplicationCreated)
 def bulk_update_index_at_start(event):
     reg = event.app.registry
