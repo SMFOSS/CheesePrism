@@ -91,6 +91,27 @@ class IndexTestCase(unittest.TestCase):
         out = self.im.regenerate_leaf(info.name)
         assert before_txt != out.text()
 
+    @patch('pyramid.threadlocal.get_current_registry')
+    def test_notify_packages_added(self, getreg):
+        from cheeseprism.index import notify_packages_added
+        pkg = dict(name='pkg', version='0.1'); pkgs = pkg,
+        index = Mock(name='index')
+        getreg.return_value = Mock(name='registry')                
+        out = list(notify_packages_added(index, pkgs))
+
+        assert len(out) == 1
+        assert getreg.called
+        assert 'notify' in getreg.return_value._children
+        (event,), _ = getreg.return_value._children['notify'].call_args
+        assert event.im is index
+        assert event.version == '0.1'
+        assert event.name == 'pkg'
+
+    @raises(StopIteration)
+    def test_notify_packages_added_raises(self):
+        from cheeseprism.index import notify_packages_added
+        next(notify_packages_added(Mock(name='index'), []))
+
     @patch('pkginfo.bdist.BDist', new=Mock(return_value=True))
     def test_pkginfo_from_file_egg(self):
         from cheeseprism.index import IndexManager
@@ -117,6 +138,8 @@ class IndexTestCase(unittest.TestCase):
         dirs = self.base.dirs()
         logger.info(pprint(dirs))
         logger.info(pprint([x.rmtree() for x in dirs]))
+
+
 
 def test_cleanup():
     assert not IndexTestCase.get_base().dirs()
