@@ -7,7 +7,7 @@ from cheeseprism.desc import updict
 from path import path
 from pyramid.events import ApplicationCreated
 from pyramid.events import subscriber
-from pyramid.threadlocal import get_current_registry
+from pyramid import threadlocal
 import jinja2
 import json
 import logging
@@ -175,15 +175,16 @@ def rebuild_leaf(event):
 @subscriber(event.IIndexUpdate)
 def bulk_update_index(event):
     new_pkgs = event.index.update_data(event.datafile)
-    notify_packages_added(event.index, new_pkgs)
+    return list(notify_packages_added(event.index, new_pkgs))
 
 
 def notify_packages_added(index, new_pkgs, reg=None):
     if reg is None:
-        reg = get_current_registry()
-
+        reg = threadlocal.get_current_registry()    
     for data in new_pkgs:
-        reg.notify(event.PackageAdded(index, name=data['name'], version=data['version']))        
+        yield reg.notify(event.PackageAdded(index,
+                                            name=data['name'],
+                                            version=data['version']))
 
 
 @subscriber(ApplicationCreated)
@@ -200,7 +201,8 @@ def bulk_update_index_at_start(event):
     template_env = settings['cheeseprism.index_templates']
     index = IndexManager(file_root, template_env=template_env)
     new_pkgs = index.update_data(datafile)
-    notify_packages_added(index, new_pkgs, reg)    
+
+    return list(notify_packages_added(index, new_pkgs, reg))
 
 
 class EnvFactory(object):

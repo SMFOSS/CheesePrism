@@ -1,2 +1,3 @@
 Mock
 nose
+coverage
