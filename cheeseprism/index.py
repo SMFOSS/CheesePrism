@@ -117,13 +117,18 @@ class IndexManager(object):
             return match.groupdict()['ext']
 
     @classmethod
-    def pkginfo_from_file(cls, path):
+    def pkginfo_from_file(cls, path, handle_error=None):
         ext = cls.extension_of(path)
-        if ext is not None:
-            if ext in set(('.gz','.tgz', '.bz2', '.zip')):
-                return pkginfo.sdist.SDist(path)
-            elif ext == '.egg':
-                return pkginfo.bdist.BDist(path)
+        try:
+            if ext is not None:
+                if ext in set(('.gz','.tgz', '.bz2', '.zip')):
+                    return pkginfo.sdist.SDist(path)
+                elif ext == '.egg':
+                    return pkginfo.bdist.BDist(path)
+        except Exception, e:
+            if handle_error is not None:
+                return handle_error(e, path)
+            raise 
         raise RuntimeError("Unrecognized extension: %s" %path)
 
     def update_by_request(self, request):
@@ -135,6 +140,12 @@ class IndexManager(object):
             with open(datafile) as stream:
                 return json.load(stream)
         return {}
+
+    def remove_on_error(self, exc, path):
+        if isinstance(exc, ValueError):
+            logger.warn("Removing %s", path)
+            logger.warn(exc)
+            path.remove()
 
     def update_data(self, datafile):
         start = time.time()
@@ -149,13 +160,14 @@ class IndexManager(object):
                 if md5 not in data:
                     #@@ fire new package event...
                     logger.info("New package: %s %s" %(str(arch), md5))
-                    pkgi = self.pkginfo_from_file(arch)
-                    pkgdata = dict(name=pkgi.name,
-                                   version=pkgi.version,
-                                   filename=str(arch.name),
-                                   added=start)
-                    data[md5] = pkgdata
-                    new.append(pkgdata)
+                    pkgi = self.pkginfo_from_file(arch, self.remove_on_error)
+                    if pkgi:
+                        pkgdata = dict(name=pkgi.name,
+                                       version=pkgi.version,
+                                       filename=str(arch.name),
+                                       added=start)
+                        data[md5] = pkgdata
+                        new.append(pkgdata)
 
             pkgs = len(set(x['name'] for x in data.values()))
             logger.info("Inspected %s versions for %s packages" %(len(data), pkgs))
