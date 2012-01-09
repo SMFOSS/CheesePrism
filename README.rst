@@ -17,7 +17,7 @@ Dev
 Install
 ~~~~~~~
 
-Activate a virtual env. Then either check out the code to your chosen location::
+Activate your virtual env. Then either check out the code to your chosen location::
 
  $ git clone git://github.com/SurveyMonkey/CheesePrism.git
 
@@ -90,7 +90,7 @@ Use the prod.ini (edited for your setup) for simplest serving::
 
  $ paster serve prod.ini
 
-:todo:
+.. todo:
   ini config generation script
                                    
 
