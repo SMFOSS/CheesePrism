@@ -60,6 +60,9 @@ def find_package(context, request):
 
 
 def package(request, fpkgs='/find-packages'):
+    """
+    @@ convert to use action on a post rather than on a get
+    """
     name = request.matchdict['name']
     version = request.matchdict['version']
     details = PyPi.package_details(name, version)
