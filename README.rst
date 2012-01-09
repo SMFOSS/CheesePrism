@@ -33,9 +33,7 @@ or use pip to clone and install directly to $VIRTUAL_ENV/src::
 Test
 ~~~~
 
-To run the tests, first install the test requirements
-
-:: 
+To run the tests, first install the test requirements:: 
  
  $ cd CheesePrism
  $ pip install -r tests-require.txt
@@ -64,10 +62,10 @@ To run the tests::
 Production
 ----------
 
-`CheesePrism` doesn't pretend that it or python servers excel at
-serving flat files.
+`CheesePrism` doesn't pretend that it or python servers in general 
+excel at serving flat files.
 
-For a more durable and performing setup, you will want to split the
+For a more durable and performantized setup, you will want to split the
 serving between a wsgi host for the management application and a
 industrial strength file server (say nginx).
 
@@ -89,6 +87,8 @@ Serve management app
 Use the prod.ini (edited for your setup) for simplest serving::
 
  $ paster serve prod.ini
+
+Sane people use something like upstart or `supervisord <supervisord.org>`_ to manage this process.
 
 .. todo:
   ini config generation script
@@ -128,7 +128,7 @@ The you can upload a source ala::
   $  python setup.py sdist upload -r local
 
 
-**Note**: The prism currently has the most basic support for pypi's
+**Note**: The prism currently has the *most* basic support for pypi's
 basic auth scheme.  This mainly exists for the purpose of grabbing the
 identity of who puports to be uploading a package, rather than any
 actual security.  If you need more, it should provide a starting point
@@ -164,7 +164,8 @@ There are 3 main ways to load files:
      $ pip freeze -l > myawesomerequirement.txt
 
  3. Use the "Find Package" page to search pypi and load packages into
-    the index.
+    the index. Currently this utilizes some state change on GET but 
+    does remain idempotent (to be fixed soon).
 
 
 JSON API
@@ -181,6 +182,14 @@ archive. Let's imagine our index only holds webob::
                                         u'filename': u'WebOb-1.2b2.zip',
                                         u'name': u'WebOb',
                                         u'version': u'1.2b2'}}
+
+HTTP API
+--------
+
+Files may be added to the index from pypi via a not so RESTful interface that will soon go away.  Provided version and name exist in PyPi, the following will download the file from pypi and register it with the index::
+
+ $ curl GET http://mycheese/package/{name}/{version}
+
 
 Future
 ======
@@ -205,5 +214,15 @@ Some features we plan to implement in the near future:
  * Better readonly api: versions.json for each package with the data
    in index.json provided in a more easily consumable fashion.
      
+ * Make POST /packages/{name}/{version} to grab a package from PyPi. Make GET /packages/{name}/{version} provide 
+   data about the package and indicate whether the package current lives in index or not.
+
+ * Proper sphinx documentation.
+
+
+Wanna get involved?
+===================
+
+Pull requests welcome! I'm on freenode at `#pyramid` or `#surveymonkey` as `whit` most days if you have questions or comments.
 
 
