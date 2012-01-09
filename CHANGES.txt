@@ -1,20 +1,31 @@
-2011-12-21  whit  <whit@JATO3-3.local>
+0.1a1
+=====
 
-	* Individual leaf update via event on upload
-	* Refactor to use pkginfo 
+Initial alpha release.
 
-2011-12-01  whit  <whit@JATO3-3.local>
-
-	* Housekeeping: add static fileserving for index for developments,
-	  more use of path.py
-
-	* Port over emporium readme.
-
-2011-11-07  whit  <whit@JATO3-3.local>
-
-	* Get app basically serving
-
+Development Log
+---------------
 	
-2011-11-07  whit  <whit@surveymonkey.com>
+2012-01-09  whit  <whit@surveymonkey.com>:
+ * Recursive download of requirements files and dependencies
+ * Search of pypi and download of files
+ * Improved test coverage
+ * Initialization of index on start up
+ * Basic read-only API for index
+ * Broader event support
+ * Documentation improvements
 
-        * Setup initial package structure	
+2011-12-21  whit  <whit@surveymonkey.com>:
+ * Individual leaf update via event on upload
+ * Refactor to use pkginfo 
+
+2011-12-01  whit  <whit@surveymonkey.com>:
+ * Housekeeping: add static fileserving for index for developments,
+   more use of path.py
+ * Port over emporium readme.
+
+2011-11-07  whit  <whit@surveymonkey.com>:
+ * Get app basically serving
+  
+2011-11-07  whit  <whit@surveymonkey.com>:
+ * Setup initial package structure  
