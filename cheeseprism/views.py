@@ -66,37 +66,41 @@ def package(request, fpkgs='/find-packages'):
     name = request.matchdict['name']
     version = request.matchdict['version']
     details = PyPi.package_details(name, version)
-    if details:
-        if details[0]['md5_digest'] in request.index_data:
-            logger.debug('Package %s-%s already in index' %(name, version))
-            return HTTPFound('/index/%s' %name)
-            
-        details = details[0]
-        url = details['url']
-        filename = details['filename']
-        newfile = None
-        try:
-            resp = requests.get(url)
-            newfile = request.file_root / filename
-            newfile.write_bytes(resp.content)
-        except HTTPError, e:
-            error = "HTTP Error: %d % - %s" %(e.code, exc.status_map[e.code].title, url)
-            logger.error(error)
-            request.session.flash(error)
-        except URLError, e:
-            logger.error("URL Error: %s, %s", e.reason , url)
-            request.session.flash('Url error attempting to grab %s: %s' %(url, e.reason))
-
-        if newfile is not None:
-            try:
-                added_event = event.PackageAdded(request.index, path=newfile)
-                request.registry.notify(added_event)            
-                request.session.flash('%s-%s was installed into the index successfully.' % (name, version))
-                return HTTPFound('/index/%s' %name)
-            except Exception, e:
-                request.session.flash('Issue with adding %s to index: See logs: %s' % (newfile.name, e))
-                
+    flash = request.session.flash 
+    if not details:
+        flash("%s-%s not found" %(name, version))
         return HTTPFound(fpkgs)
+        
+    if details[0]['md5_digest'] in request.index_data:
+        logger.debug('Package %s-%s already in index' %(name, version))
+        return HTTPFound('/index/%s' %name)
+            
+    details = details[0]
+    url = details['url']
+    filename = details['filename']
+    newfile = None
+    try:
+        resp = requests.get(url)
+        newfile = request.file_root / filename
+        newfile.write_bytes(resp.content)
+    except HTTPError, e:
+        error = "HTTP Error: %d %s - %s" %(e.code, exc.status_map[e.code].title, url)
+        logger.error(error)
+        flash(error)
+    except URLError, e:
+        logger.error("URL Error: %s, %s", e.reason , url)
+        flash('Url error attempting to grab %s: %s' %(url, e.reason))
+
+    if newfile is not None:
+        try:
+            added_event = event.PackageAdded(request.index, path=newfile)
+            request.registry.notify(added_event)            
+            flash('%s-%s was installed into the index successfully.' % (name, version))
+            return HTTPFound('/index/%s' %name)
+        except Exception, e:
+            flash('Issue with adding %s to index: See logs: %s' % (newfile.name, e))
+
+    return HTTPFound(fpkgs)
 
 
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
@@ -120,22 +124,22 @@ def from_requirements(context, request):
         names = []
         requirement_set, finder = pipext.RequirementDownloader.req_set_from_file(filename, request.file_root)
         downloader = pipext.RequirementDownloader(requirement_set, finder, seen=set(request.index_data))
-
         for pkginfo, outfile in downloader.download_all():
             name = pkginfo.name
             names.append(name)
 
         index.update_by_request(request)
+        flash = request.sesion.flash
         if names:
-            request.session.flash('The following packages were installed from the requirements file: %s' % ", ".join(names))
+            flash('The following packages were installed from the requirements file: %s' % ", ".join(names))
 
         if downloader.skip:
             for dl in (x.filename for x in downloader.skip):
-                request.session.flash("Skipped (already in index): %s" %dl)
+                flash("Skipped (already in index): %s" %dl)
 
         if downloader.errors:
             for error in downloader.errors:
-                request.session.flash('Download issue: %s' %error)
+                flash('Download issue: %s' %error)
         
         return HTTPFound('/load-requirements')
     return {}
