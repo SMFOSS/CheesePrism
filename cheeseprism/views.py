@@ -9,6 +9,7 @@ from pyramid.i18n import TranslationStringFactory
 from pyramid.view import view_config
 from urllib2 import HTTPError
 from urllib2 import URLError
+from webob import exc
 import logging
 import requests
 import tempfile
@@ -54,31 +55,45 @@ def find_package(context, request):
     if request.method == "POST":
         search_term = request.POST['search_box']
         releases = PyPi.search(search_term)
-    return dict(releases=releases, search_term=search_term)
+    url = request.resource_url(context, request.view_name)
+    return dict(releases=releases, search_term=search_term, here=url)
 
 
-def package(request):
+def package(request, fpkgs='/find-packages'):
     name = request.matchdict['name']
     version = request.matchdict['version']
-    details = utils.package_details(name, version)
+    details = PyPi.package_details(name, version)
     if details:
+        if details[0]['md5_digest'] in request.index_data:
+            logger.debug('Package %s-%s already in index' %(name, version))
+            return HTTPFound('/index/%s' %name)
+            
         details = details[0]
         url = details['url']
         filename = details['filename']
+        newfile = None
         try:
-            requests.get(url)
+            resp = requests.get(url)
             newfile = request.file_root / filename
-            newfile.write_text(request.content)
+            newfile.write_bytes(resp.content)
         except HTTPError, e:
-            logger.error("HTTP Error: %s, %s", e.code , url)
+            error = "HTTP Error: %d % - %s" %(e.code, exc.status_map[e.code].title, url)
+            logger.error(error)
+            request.session.flash(error)
         except URLError, e:
             logger.error("URL Error: %s, %s", e.reason , url)
+            request.session.flash('Url error attempting to grab %s: %s' %(url, e.reason))
 
-        added_event = event.PackageAdded(request.index, path=newfile)
-        request.registry.notify(added_event)            
-        request.session.flash('%s-%s was installed into the index successfully.' % (name, version))
-        return HTTPFound('/index/%s' %name)
-    return HTTPFound('/index')
+        if newfile is not None:
+            try:
+                added_event = event.PackageAdded(request.index, path=newfile)
+                request.registry.notify(added_event)            
+                request.session.flash('%s-%s was installed into the index successfully.' % (name, version))
+                return HTTPFound('/index/%s' %name)
+            except Exception, e:
+                request.session.flash('Issue with adding %s to index: See logs: %s' % (newfile.name, e))
+                
+        return HTTPFound(fpkgs)
 
 
 @view_config(name='regenerate-index', renderer='regenerate.html', context=resources.App)
