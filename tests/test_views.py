@@ -16,6 +16,7 @@ class CPDummyRequest(testing.DummyRequest):
     test_dir = None
     counter = itertools.count()
     env = None
+    _index_data = {}
 
     @property
     def userid(self):
@@ -45,8 +46,12 @@ class CPDummyRequest(testing.DummyRequest):
 
     @reify
     def index_data_path(self):
-        return self.file_root / 'data.json'
-    
+        return self.file_root / 'index.json'
+
+    @reify
+    def index_data(self):
+        return self._index_data
+
 
 class DummyResponse(object):
     def __init__(self):
@@ -75,6 +80,7 @@ class ViewTests(unittest.TestCase):
         if CPDummyRequest.test_dir is not None:
             CPDummyRequest.test_dir.rmtree()
             CPDummyRequest.test_dir = None
+        CPDummyRequest._index_data = {}
 
     @patch('cheeseprism.rpc.PyPi.search')
     def test_find_package(self, search_pypi):
@@ -90,6 +96,75 @@ class ViewTests(unittest.TestCase):
         out = find_package(App(request), request)
         assert out['releases'] == ['1.3a2'], "%s != %s" %(out['releases'], ['1.3a2'])
         assert out['search_term'] == 'pyramid'
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_no_details(self, pd):
+        """
+        pypi doesn't know anything about our package
+        """
+        from cheeseprism.views import package
+        pd.return_value = None
+        request = testing.DummyRequest()
+        request.matchdict.update(dict(name='boto',
+                                      version='1.2.3'))
+        out = package(request)
+        assert isinstance(out, HTTPFound)
+        assert out.location == '/find-packages'
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_md5_matches(self, pd):
+        """
+        package is already in index
+        """
+        from cheeseprism.views import package
+        td = dict(name='boto',
+                  version='1.2.3',
+                  md5_digest='12345')
+        pd.return_value = [td]        
+        request = CPDummyRequest()
+        request.matchdict.update(td)
+        request.index_data.update({'12345':True})
+        out = package(request)
+        assert isinstance(out, HTTPFound)
+        assert out.location == '/index/boto'
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_httperror(self, pd):
+        """
+        package: test catching httperror
+        """
+        request = self.package_request(pd)
+        with patch('requests.get') as get:
+            from cheeseprism import views; reload(views)
+            get.side_effect = views.HTTPError('http://boto', 500, 'KABOOM', dict(), None)
+            out = views.package(request)
+        assert isinstance(out, HTTPFound)
+
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_urlerror(self, pd):
+        """
+        package: test catching urlerror
+        """
+        request = self.package_request(pd)
+        with patch('requests.get') as get:
+            from cheeseprism import views; reload(views)
+            get.side_effect = views.URLError('kaboom')
+            out = views.package(request)
+        assert isinstance(out, HTTPFound)
+        assert out.location == '/find-packages'
+
+    def package_request(self, pd, td=None):
+        if td is None:
+            td = dict(name='boto',
+                      version='1.2.3',
+                      md5_digest='12345',
+                      url='http://boto',
+                      filename='boto-1.2.3.tar.gz')
+        pd.return_value = [td]
+        request = CPDummyRequest()
+        request.matchdict.update(td)
+        return request
 
     def test_index_view(self):
         from cheeseprism.views import homepage as index
@@ -136,6 +211,9 @@ class ViewTests(unittest.TestCase):
             self.event_results['fired'] = True
             
         self.config.add_subscriber(test_event_fire)
+
+
+
 
     @patch('path.path.write_bytes')
     @patch('pkginfo.sdist.SDist')
