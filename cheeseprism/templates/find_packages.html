@@ -1,7 +1,7 @@
 {%extends "base.html"%}
 {% block content%}
 <p>The package must be exact:</p>
-<form action='/search' method="POST">
+<form action='{{here}}' method="POST">
   <input type='text' name='search_box'/> <input type='submit'>
 </form>
 
