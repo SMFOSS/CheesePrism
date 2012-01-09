@@ -15,6 +15,7 @@ import pkginfo
 import re
 import threading
 import time
+import traceback
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ class IndexManager(object):
     index_data_lock = threading.Lock()
     
     def __init__(self, index_path, template_env=None, urlbase='..',
-                 index_data={}, leaf_data={}):
+                 index_data={}, leaf_data={}, error_folder='_errors'):
         self.urlbase = urlbase
         self.template_env = template_env
         if not self.template_env:
@@ -47,7 +48,8 @@ class IndexManager(object):
         self.leaf_data = leaf_data.copy()
         self.path = path(index_path)
         if not self.path.exists():
-            self.path.makedirs()        
+            self.path.makedirs()
+        self.error_folder = self.path / error_folder
 
     leaf_template = template('leaf.html')
     home_template = template('home.html')
@@ -141,11 +143,9 @@ class IndexManager(object):
                 return json.load(stream)
         return {}
 
-    def remove_on_error(self, exc, path):
-        if isinstance(exc, ValueError):
-            logger.warn("Removing %s", path)
-            logger.warn(exc)
-            path.remove()
+    def move_on_error(self, exc, path):
+        logger.error(traceback.format_exc())
+        path.rename(self.error_folder)
 
     def update_data(self, datafile):
         start = time.time()
@@ -160,7 +160,7 @@ class IndexManager(object):
                 if md5 not in data:
                     #@@ fire new package event...
                     logger.info("New package: %s %s" %(str(arch), md5))
-                    pkgi = self.pkginfo_from_file(arch, self.remove_on_error)
+                    pkgi = self.pkginfo_from_file(arch, self.move_on_error)
                     if pkgi:
                         pkgdata = dict(name=pkgi.name,
                                        version=pkgi.version,
