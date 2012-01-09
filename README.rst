@@ -26,7 +26,7 @@ and install::
 
  $ cd CheesePrism; pip install -e ./
 
-or use pip to clone and install directly to $VIRTUAL_ENV/src::
+or use pip to clone and install directly to ``$VIRTUAL_ENV/src``::
 
  $ pip install git+git://github.com/SurveyMonkey/CheesePrism.git#egg=CheesePrism
  $ cd $VIRTUAL_ENV/src/cheeseprism
@@ -103,8 +103,8 @@ Release into your index
 -----------------------
 
 CheesePrism understand the upload interface of pypi. This means for
-python2.6 and better you can setup your ~/.pypirc and then upload to
-your prism as you would pypi::
+python2.6 and better you can setup your ``~/.pypirc`` and then upload to
+your prism as you would `pypi <http://pypi.python.org/pypi>`_::
 
  [distutils]
     index-servers =
@@ -156,7 +156,7 @@ There are 3 main ways to load files:
 
  1. If you put archives into the file root of your index and restart
     the app, it will generate index entries for them. There are plans
-    to make this automagical soon.
+    to make this automagical soon so a restart is not required.
 
  2. Through the 'Load Requirements' page you may upload a pip
     requirements files that CheesePrism will use to populate your
@@ -227,6 +227,7 @@ Some features we plan to implement in the near future:
 Wanna get involved?
 ===================
 
-Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* as ``whit`` most days if you have questions or comments.
+Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* 
+as ``whit`` most days if you have questions or comments.
 
 
