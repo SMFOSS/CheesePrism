@@ -215,8 +215,8 @@ Some features we plan to implement in the near future:
  * Better readonly api: versions.json for each package with the data
    in index.json provided in a more easily consumable fashion.
      
- * Make POST /packages/{name}/{version} to grab a package from PyPi. Make GET /packages/{name}/{version} provide 
-   data about the package and indicate whether the package current lives in index or not.
+ * Make ``POST /packages/{name}/{version}`` to grab a package from PyPi. Make ``GET /packages/{name}/{version}``
+   provide data about the package and indicate whether the package current lives in index or not.
 
  * Proper sphinx documentation.
 
@@ -224,6 +224,6 @@ Some features we plan to implement in the near future:
 Wanna get involved?
 ===================
 
-Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* as **whit** most days if you have questions or comments.
+Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* as ``whit`` most days if you have questions or comments.
 
 
