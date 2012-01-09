@@ -5,8 +5,8 @@
 A simple application for managing a static python package index.  It
 borrows heavily from `BasketWeaver <https://github.com/binarydud/basket-weaver>`_ 
 and `cheese_emporium <git@github.com:binarydud/cheese_emporium.git>`_.  It
-leverages `pip <https://github.com/pypa/pip>`_ and ``setuptools/distribute`` for various package
-management tasks.
+leverages `pip <https://github.com/pypa/pip>`_ and setuptools/`distribute <http://pypi.python.org/pypi/distribute>`_
+for various package management tasks.
 
 
 Running
@@ -63,7 +63,7 @@ To run the tests::
 Production
 ----------
 
-`CheesePrism` doesn't pretend that it or python servers in general 
+``CheesePrism`` doesn't pretend that it or python servers in general 
 excel at serving flat files.
 
 For a more durable and performantized setup, you will want to split the
@@ -74,8 +74,8 @@ industrial strength file server (say nginx).
 Configure Nginx
 ~~~~~~~~~~~~~~~
 
-See `sample-nginx.conf` and replace `alias CheesePrism/files;` and
-`alias CheesePrism/static` with your fileroot and static filepath.
+See ``doc/sample-nginx.conf`` and replace ``alias CheesePrism/files;`` and
+``alias CheesePrism/static`` with your fileroot and static filepath.
  
 .. todo::
 
@@ -133,7 +133,8 @@ The you can upload a source ala::
 basic auth scheme.  This mainly exists for the purpose of grabbing the
 identity of who puports to be uploading a package, rather than any
 actual security.  If you need more, it should provide a starting point
-for extension (see pyramid documentation for more information).
+for extension (see `pyramid documentation <http://docs.pylonsproject.org/en/latest/docs/pyramid.html>`_ 
+for more information on extending pyramid apps).
 
 
 Install from your index
@@ -143,7 +144,7 @@ Install from your index
 
   $ pip install -i http://mycheese/index/ MyAwesomePyPkg
 
-All dependencies of `MyAwesomePyPkg` will also come from your prism,
+All dependencies of ``MyAwesomePyPkg`` will also come from your prism,
 so make sure they are there (coming feature will inspect your release
 and do the needful).
 
@@ -187,7 +188,9 @@ archive. Let's imagine our index only holds webob::
 HTTP API
 --------
 
-Files may be added to the index from pypi via a not so RESTful interface that will soon go away.  Provided version and name exist in PyPi, the following will download the file from pypi and register it with the index::
+Files may be added to the index from pypi via a not so RESTful interface 
+that will soon go away.  Provided ``name`` and ``version`` exist in PyPi, the 
+following will download the file from pypi and register it with the index::
 
  $ curl GET http://mycheese/package/{name}/{version}
 
@@ -197,7 +200,7 @@ Future
 
 Some features we plan to implement in the near future:
 
- * Multi-index support.  The general idea is that you can evolve
+ * **Multi-index support**:  The general idea is that you can evolve
    indexes rather like requirements files but by explicit limiting of
    membership in a group rather than specification that requires
    talking to an external index. One archive might exist in multiple
@@ -207,18 +210,18 @@ Some features we plan to implement in the near future:
    This would include a ui for select member archives to compose an new index as
    well as cloning and extending an existing index.
 
- * Less crap work: automatic dependency loading for releases and
+ * **Less crap work**: automatic dependency loading for releases and
    packages loaded via find packages. A file watcher for the repo that
    rebuilds the appropriate parts of the index when files are added
    and removed.
 
- * Better readonly api: versions.json for each package with the data
+ * **Better readonly api**: versions.json for each package with the data
    in index.json provided in a more easily consumable fashion.
      
- * Make ``POST /packages/{name}/{version}`` to grab a package from PyPi. Make ``GET /packages/{name}/{version}``
+ * **Better REST**: Make ``POST /packages/{name}/{version}`` to grab a package from PyPi. Make ``GET /packages/{name}/{version}``
    provide data about the package and indicate whether the package current lives in index or not.
 
- * Proper sphinx documentation.
+ * **Proper sphinx documentation**: yup.
 
 
 Wanna get involved?
