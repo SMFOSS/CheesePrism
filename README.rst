@@ -3,8 +3,9 @@
 ================
 
 A simple application for managing a static python package index.  It
-borrows heavily from `BasketWeaver` and `cheese_emporium`.  It
-leverages `pip` and `setuptools/distribute` for various package
+borrows heavily from `BasketWeaver <https://github.com/binarydud/basket-weaver>`_ 
+and `cheese_emporium <git@github.com:binarydud/cheese_emporium.git>`_.  It
+leverages `pip <https://github.com/pypa/pip>`_ and ``setuptools/distribute`` for various package
 management tasks.
 
 
@@ -223,6 +224,6 @@ Some features we plan to implement in the near future:
 Wanna get involved?
 ===================
 
-Pull requests welcome! I'm on freenode at `#pyramid` or `#surveymonkey` as `whit` most days if you have questions or comments.
+Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* as **whit** most days if you have questions or comments.
 
 
