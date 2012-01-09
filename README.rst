@@ -1,5 +1,5 @@
 ================
- Cheese Pyramid
+ Cheese Prism
 ================
 
 A simple application for managing a static python package index.  It
