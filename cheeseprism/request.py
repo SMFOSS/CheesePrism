@@ -40,5 +40,5 @@ class CPRequest(Request):
 
     @reify
     def index_data(self):
-        return self.index.data_from_path(self.registry.settings['cheeseprism.data_json'])
+        return self.index.data_from_path(self.file_root / self.registry.settings['cheeseprism.data_json'])
     
