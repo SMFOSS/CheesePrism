@@ -55,7 +55,7 @@ class PackageEvent(object):
         self.path = path
 
         if self.name is None and self.path:
-            info = self.im.pkginfo_from_file(path)
+            info = self.im.pkginfo_from_file(path, self.im.move_on_error)
             self.name = info.name
             self.version = info.version
 
