@@ -16,7 +16,7 @@ requires = ['Jinja2',
             'pip']
 
 setup(name='CheesePrism',
-      version='0.1a1',
+      version='0.1a2',
       description='CheesePrism',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
