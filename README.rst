@@ -3,10 +3,12 @@
 ================
 
 A simple application for managing a static python package index.  It
-borrows heavily from `BasketWeaver <https://github.com/binarydud/basket-weaver>`_ 
-and `cheese_emporium <git@github.com:binarydud/cheese_emporium.git>`_.  It
-leverages `pip <https://github.com/pypa/pip>`_ and setuptools/`distribute <http://pypi.python.org/pypi/distribute>`_
-for various package management tasks.
+borrows heavily from `BasketWeaver
+<https://github.com/binarydud/basket-weaver>`_ and `cheese_emporium
+<git@github.com:binarydud/cheese_emporium.git>`_.  It leverages `pip
+<https://github.com/pypa/pip>`_ and setuptools/`distribute
+<http://pypi.python.org/pypi/distribute>`_ for various package
+management tasks.
 
 
 Running
@@ -18,23 +20,44 @@ Dev
 Install
 ~~~~~~~
 
-Activate your virtual env. Then either check out the code to your chosen location::
+There are 3 main ways to get your CheesePrism up and running depending
+on your particular needs.
 
- $ git clone git://github.com/SurveyMonkey/CheesePrism.git
+ 1. **'Strap it**: 
 
-and install::
+    Download the most current strap file that contains
+    CheesePrism and all of it's dependencies from `the strappery
+    <https://github.com/whitmo/Strap/downloads>`_::
 
- $ cd CheesePrism; pip install -e ./
+     $ curl https://github.com/downloads/whitmo/Strap/CheesePrism.strap.pybundle
+     $ python CheesePrism.strap.pybundle new-prism-env
 
-or use pip to clone and install directly to ``$VIRTUAL_ENV/src``::
 
- $ pip install git+git://github.com/SurveyMonkey/CheesePrism.git#egg=CheesePrism
- $ cd $VIRTUAL_ENV/src/cheeseprism
+    If you are already in an activated virtualenv, the prism is
+    installed there.
+
+ 2. Pip install the package from pypi:
+
+    Activate your virtual env. Then either check out the code to your chosen location::
+
+    $ git clone git://github.com/SurveyMonkey/CheesePrism.git
+
+    and install::
+
+    $ cd CheesePrism; pip install -e ./
+
+ 3. Pip install the source:
+
+    Use pip to clone and install directly to ``$VIRTUAL_ENV/src``::
+
+     $ pip install git+git://github.com/SurveyMonkey/CheesePrism.git#egg=CheesePrism
+     $ cd $VIRTUAL_ENV/src/cheeseprism
 
 Test
 ~~~~
 
-To run the tests, first install the test requirements:: 
+If you have installed the source, to run the tests, first install the
+test requirements::
  
  $ cd CheesePrism
  $ pip install -r tests-require.txt
@@ -54,10 +77,16 @@ The following will start the application and a static file server for
 
  $ paster serve development.ini
 
-To run the tests::
+**If** you have not installed the source (ie. you installed the
+package or from the strap file), you will need to copy the
+development.ini to a convient location.  
 
- $ pip install -r tests-require.txt
- $ nosetests -vv
+You will also need to set the ini key ``cheeseprism.file_root`` to the
+directory you wish your index files to live in.  
+
+This directory may not exist yet, or could be an empty directory. If
+the directory contains well formed archives, it will build the index
+from what it finds there.
 
 
 Production
@@ -85,7 +114,9 @@ See ``doc/sample-nginx.conf`` and replace ``alias CheesePrism/files;`` and
 Serve management app
 ~~~~~~~~~~~~~~~~~~~~
 
-Use the prod.ini (edited for your setup) for simplest serving::
+Use the prod.ini (edited for your setup) for simplest serving. Be sure
+to remove such things as ``pyramid.includes = pyramid_debugtoolbar``
+if security is a concern::
 
  $ paster serve prod.ini
 
@@ -224,10 +255,12 @@ Some features we plan to implement in the near future:
  * **Proper sphinx documentation**: yup.
 
 
-Wanna get involved?
-===================
+Contact / Wanna get involved?
+=============================
 
-Pull requests welcome! I'm on freenode at *#pyramid* or *#surveymonkey* 
-as ``whit`` most days if you have questions or comments.
+Pull requests welcome! 
+
+I'm on freenode at *#pyramid*, *#surveymonkey*, or *#distutils* as
+``whit`` most days if you have questions or comments.
 
 
