@@ -121,15 +121,17 @@ def from_requirements(context, request):
 
         filename = path(tempfile.gettempdir()) / 'temp-req.txt'
         filename.write_text(req_text)
+        
         names = []
         requirement_set, finder = pipext.RequirementDownloader.req_set_from_file(filename, request.file_root)
         downloader = pipext.RequirementDownloader(requirement_set, finder, seen=set(request.index_data))
+
         for pkginfo, outfile in downloader.download_all():
             name = pkginfo.name
             names.append(name)
 
         index.update_by_request(request)
-        flash = request.sesion.flash
+        flash = request.session.flash
         if names:
             flash('The following packages were installed from the requirements file: %s' % ", ".join(names))
 
