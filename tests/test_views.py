@@ -1,5 +1,4 @@
 from cheeseprism import index
-from pyramid.events import subscriber
 from cheeseprism.resources import App
 from mock import Mock
 from mock import patch
@@ -7,10 +6,11 @@ from nose.tools import raises
 from path import path
 from pyramid import testing
 from pyramid.decorator import reify
+from pyramid.events import subscriber
 from pyramid.httpexceptions import HTTPFound
+from test_pipext import PipExtBase
 import itertools
 import unittest
-
 
 class CPDummyRequest(testing.DummyRequest):
     test_dir = None
@@ -140,7 +140,6 @@ class ViewTests(unittest.TestCase):
             out = views.package(request)
         assert isinstance(out, HTTPFound)
 
-
     @patch('cheeseprism.rpc.PyPi.package_details')
     def test_package_urlerror(self, pd):
         """
@@ -151,6 +150,38 @@ class ViewTests(unittest.TestCase):
             from cheeseprism import views; reload(views)
             get.side_effect = views.URLError('kaboom')
             out = views.package(request)
+        assert isinstance(out, HTTPFound)
+        assert out.location == '/find-packages'
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_good(self, pd):
+        """
+        package: test catching urlerror
+        """
+        request = self.package_request(pd)
+        request.file_root.mkdir()
+        with patch('requests.get') as get:
+            resp = get.return_value = Mock('response')
+            resp.content = PipExtBase.dists['dp'].bytes()
+            from cheeseprism import views; reload(views)
+            out = views.package(request)
+        assert isinstance(out, HTTPFound)
+        assert out.location == '/index/boto'
+
+    @patch('cheeseprism.rpc.PyPi.package_details')
+    def test_package_downloads_ok_but_bad(self, pd):
+        """
+        package: test catching urlerror
+        """
+        request = self.package_request(pd)
+        request.file_root.mkdir()
+        with patch('requests.get') as get:
+            resp = get.return_value = Mock('response')
+            resp.content = PipExtBase.dists['dp'].bytes()
+            from cheeseprism import views; reload(views)
+            with patch('cheeseprism.index.IndexManager.pkginfo_from_file') as pkff:
+                pkff.side_effect = ValueError("KABOOM")
+                out = views.package(request)
         assert isinstance(out, HTTPFound)
         assert out.location == '/find-packages'
 
@@ -211,9 +242,6 @@ class ViewTests(unittest.TestCase):
             self.event_results['fired'] = True
             
         self.config.add_subscriber(test_event_fire)
-
-
-
 
     @patch('path.path.write_bytes')
     @patch('pkginfo.sdist.SDist')
