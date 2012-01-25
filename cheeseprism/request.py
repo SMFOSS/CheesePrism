@@ -3,7 +3,6 @@ from path import path
 from pyramid.decorator import reify
 from pyramid.request import Request
 from pyramid.security import unauthenticated_userid
-import json
 
 
 class CPRequest(Request):
