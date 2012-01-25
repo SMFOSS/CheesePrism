@@ -134,7 +134,7 @@ class IndexManager(object):
         raise RuntimeError("Unrecognized extension: %s" %path)
 
     def update_by_request(self, request):
-        request.registry.notify(event.IndexUpdate(request.index_data_path, request.index))
+        request.registry.notify(event.IndexUpdate(request.index_data_path, self))
 
     def data_from_path(self, datafile):
         datafile = path(datafile)
