@@ -13,7 +13,8 @@ def main(global_config, **settings):
 
     config = Configurator(root_factory=App, settings=settings,
                           session_factory=session_factory,
-                          authentication_policy=BasicAuthenticationPolicy(BasicAuthenticationPolicy.noop_check))
+                          authentication_policy=\
+                          BasicAuthenticationPolicy(BasicAuthenticationPolicy.noop_check))
     
     config.add_translation_dirs('locale/')
     config.include('pyramid_jinja2')
@@ -27,3 +28,4 @@ def main(global_config, **settings):
     settings['index_templates'] = EnvFactory.from_str(settings['cheeseprism.index_templates'])
 
     return config.make_wsgi_app()
+
