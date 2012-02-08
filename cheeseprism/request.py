@@ -30,8 +30,12 @@ class CPRequest(Request):
 
     @reify
     def index(self):
-        urlbase = self.settings.get('cheeseprism.urlbase', '..')
-        return self.imclass(self.file_root, urlbase=urlbase, template_env=self.index_templates)
+        urlbase = self.settings.get('cheeseprism.urlbase', '')
+        abu = self.settings.get('cheeseprism.archive.urlbase', '..')
+        return self.imclass(self.file_root,
+                            urlbase=urlbase,
+                            arch_baseurl=abu,
+                            template_env=self.index_templates)
 
     @reify
     def index_data_path(self):

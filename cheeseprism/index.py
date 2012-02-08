@@ -38,9 +38,10 @@ class IndexManager(object):
                         description="Welcome to the CheesePrism")
     index_data_lock = threading.Lock()
     
-    def __init__(self, index_path, template_env=None, urlbase='..',
+    def __init__(self, index_path, template_env=None, arch_baseurl='/index/', urlbase='',
                  index_data={}, leaf_data={}, error_folder='_errors'):
         self.urlbase = urlbase
+        self.arch_baseurl = arch_baseurl
         self.template_env = template_env
         if not self.template_env:
             self.template_env = self.default_env_factory('')
@@ -109,7 +110,7 @@ class IndexManager(object):
         return leafhome
 
     def leaf_values(self, leafname, archive):
-        url = "%s/%s" %(self.urlbase, archive.name)
+        url = str(path(self.arch_baseurl) / archive.name)
         return dict(url=url, name=archive.name)
 
     @classmethod
