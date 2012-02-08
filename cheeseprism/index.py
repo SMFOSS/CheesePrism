@@ -202,6 +202,8 @@ def notify_packages_added(index, new_pkgs, reg=None):
 
 @subscriber(ApplicationCreated)
 def bulk_update_index_at_start(event):
+    #@@ most of this ought to be encapsulated to a classmethod on
+    #`IndexManager` called `.from_settings`
     reg = event.app.registry
     settings = reg.settings
     file_root = path(settings['cheeseprism.file_root'])
@@ -212,7 +214,12 @@ def bulk_update_index_at_start(event):
     datafile = file_root / settings['cheeseprism.data_json']
 
     template_env = settings['cheeseprism.index_templates']
-    index = IndexManager(file_root, template_env=template_env)
+    urlbase = settings.get('cheeseprism.urlbase', '')
+    abu = settings.get('cheeseprism.archive.urlbase', '..')
+    index = IndexManager(file_root,
+                         template_env=template_env,
+                         urlbase=urlbase,
+                         arch_baseurl=abu)
     new_pkgs = index.update_data(datafile)
 
     return list(notify_packages_added(index, new_pkgs, reg))
