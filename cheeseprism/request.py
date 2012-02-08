@@ -23,7 +23,6 @@ class CPRequest(Request):
     @reify
     def index_templates(self):
         return self.registry.settings['cheeseprism.index_templates']
-    
 
     @reify
     def file_root(self):
@@ -31,7 +30,8 @@ class CPRequest(Request):
 
     @reify
     def index(self):
-        return self.imclass(self.file_root, template_env=self.index_templates)
+        urlbase = self.settings.get('cheeseprism.urlbase', '..')
+        return self.imclass(self.file_root, urlbase=urlbase, template_env=self.index_templates)
 
     @reify
     def index_data_path(self):
@@ -39,5 +39,5 @@ class CPRequest(Request):
 
     @reify
     def index_data(self):
-        return self.index.data_from_path(self.file_root / self.registry.settings['cheeseprism.data_json'])
+        return self.index.data_from_path(self.file_root / self.index_data_path)
     

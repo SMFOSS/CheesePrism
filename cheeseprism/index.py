@@ -85,7 +85,7 @@ class IndexManager(object):
     def write_index_home(self, home_file, items):
         logger.info('Write index home:%s', home_file)
         data = self.index_data.copy()
-        data['packages'] = [dict(name=key, url="%s/%s" %(self.urlbase, key)) \
+        data['packages'] = [dict(name=key, url=str(path(self.urlbase) / key )) \
                             for key, value in items]
         home_file.write_text(self.home_template.render(**data))
         return home_file
