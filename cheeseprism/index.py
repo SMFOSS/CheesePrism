@@ -222,7 +222,13 @@ def bulk_update_index_at_start(event):
                          arch_baseurl=abu)
     new_pkgs = index.update_data(datafile)
 
-    return list(notify_packages_added(index, new_pkgs, reg))
+    pkg_added = list(notify_packages_added(index, new_pkgs, reg))
+
+    home_file = index.path / index.root_index_file
+    if not home_file.exists():
+        items = index.projects_from_archives()
+        index.write_index_home(home_file, items)    
+    return pkg_added
 
 
 class EnvFactory(object):
