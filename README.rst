@@ -77,6 +77,9 @@ The following will start the application and a static file server for
 
  $ paster serve development.ini
 
+You will need to install `PasteScript <http://pythonpaste.org/script/>`_
+in order to run this command (``easy_install PasteScript``).
+
 **If** you have not installed the source (ie. you installed the
 package or from the strap file), you will need to copy the
 development.ini to a convient location.  
