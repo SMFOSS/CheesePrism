@@ -16,6 +16,8 @@ requires = ['Jinja2',
             'Paste',
             'pip']
 
+test_requires = ['mock', 'nose'] + requires
+
 setup(name='CheesePrism',
       version='0.1a2',
       description='CheesePrism',
@@ -34,8 +36,8 @@ setup(name='CheesePrism',
       include_package_data=True,
       zip_safe=False,
       install_requires=requires,
-      tests_require=requires,
-      test_suite="cheeseprism",
+      tests_require=test_requires,
+      test_suite="nose.collector",
       entry_points = """\
       [paste.app_factory]
       main = cheeseprism.wsgiapp:main
