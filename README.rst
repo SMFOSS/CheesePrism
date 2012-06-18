@@ -154,7 +154,7 @@ your prism as you would `pypi <http://pypi.python.org/pypi>`_::
     # your prism of fromage
     username:user
     password:secret
-    repository:http://mycheese
+    repository:http://mycheese/simple
 
 
 The you can upload a source ala::
