@@ -43,7 +43,10 @@ def upload(context, request):
     dest = path(request.file_root) / utils.secure_filename(fieldstorage.filename)
 
     dest.write_bytes(fieldstorage.file.read())
-    request.index.update_by_request(request)
+    pkgdata, _ = request.index.register_archive(dest, registry=request.registry)
+    request.registry.notify(event.PackageAdded(request.index,
+                                               name=pkgdata['name'],
+                                               version=pkgdata['version']))
     request.response.headers['X-Swalow-Status'] = 'SUCCESS'
     return request.response
 
@@ -113,7 +116,9 @@ def regenerate_index(context, request):
     return {}
 
 
-@view_config(name='load-requirements', renderer='requirements_upload.html', context=resources.App)
+@view_config(name='load-requirements',
+             renderer='requirements_upload.html',
+             context=resources.App)
 def from_requirements(context, request):
     if request.method == "POST":
         req_text = request.POST['req_file'].file.read()
@@ -123,17 +128,20 @@ def from_requirements(context, request):
         filename.write_text(req_text)
         
         names = []
-        requirement_set, finder = pipext.RequirementDownloader.req_set_from_file(filename, request.file_root)
-        downloader = pipext.RequirementDownloader(requirement_set, finder, seen=set(request.index_data))
+        rd_class = pipext.RequirementDownloader
+        requirement_set, finder = rd_class.req_set_from_file(filename, request.file_root)
+        downloader = rd_class(requirement_set, finder, seen=set(request.index_data))
 
         for pkginfo, outfile in downloader.download_all():
             name = pkginfo.name
             names.append(name)
 
-        index.update_by_request(request)
+        request.registry.notify(event.IndexUpdate(request.index_data_path, request.index))
+
         flash = request.session.flash
         if names:
-            flash('The following packages were installed from the requirements file: %s' % ", ".join(names))
+            flash('The following packages were installed'
+                  'from the requirements file: %s' % ", ".join(names))
 
         if downloader.skip:
             for dl in (x.filename for x in downloader.skip):
