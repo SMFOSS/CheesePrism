@@ -8,6 +8,7 @@ from path import path
 from pyramid.events import ApplicationCreated
 from pyramid.events import subscriber
 from pyramid import threadlocal
+from functools import partial
 import jinja2
 import json
 import logging
@@ -19,6 +20,8 @@ import traceback
 
 
 logger = logging.getLogger(__name__)
+
+
 
 
 class IndexManager(object):
@@ -36,7 +39,13 @@ class IndexManager(object):
     index_data = updict(title=def_index_title,
                         index_title=def_index_title,
                         description="Welcome to the CheesePrism")
+    datafile_name = "index.json"
     index_data_lock = threading.Lock()
+
+    @staticmethod
+    def move_on_error(error_folder, exc, path):
+        logger.error(traceback.format_exc())
+        path.rename(error_folder)
     
     def __init__(self, index_path, template_env=None, arch_baseurl='/index/', urlbase='',
                  index_data={}, leaf_data={}, error_folder='_errors'):
@@ -48,9 +57,11 @@ class IndexManager(object):
         self.index_data = index_data.copy()            
         self.leaf_data = leaf_data.copy()
         self.path = path(index_path)
+        self.datafile_path = self.path / self.datafile_name
         if not self.path.exists():
             self.path.makedirs()
         self.error_folder = self.path / error_folder
+        self.move_on_error = partial(self.move_on_error, self.error_folder)
 
     leaf_template = template('leaf.html')
     home_template = template('home.html')
@@ -91,21 +102,34 @@ class IndexManager(object):
         home_file.write_text(self.home_template.render(**data))
         return home_file
 
-    def write_leaf(self, leafdir, versions):
+    def write_leaf(self, leafdir, versions, indexhtml="index.html", indexjson="index.json"):
         if not leafdir.exists():
             leafdir.makedirs()
 
-        leafhome = leafdir / "index.html"
+        leafhome = leafdir / indexhtml
+        leafjson = leafdir / indexjson
         title = "%s:%s" %(self.index_data['title'], leafdir.name)
         tversions = [self.leaf_values(leafdir.name, archive)\
-                    for info, archive in versions]
-        
+                     for info, archive in versions]
+
         text = self.leaf_template\
                .render(package_title=leafdir.name,
                        title=title,
                        versions=tversions)
 
         leafhome.write_text(text)
+        
+        with self.index_data_lock: #@@ more granular locks
+            with open(leafjson, 'w') as jsonout:
+                leafdata = [dict(filename=str(path.name),
+                                 name=dist.name,
+                                 version=dist.version,
+                                 mtime=fpath.mtime,
+                                 ctime=fpath.ctime,
+                                 atime=fpath.ctime,
+                                 ) for dist, fpath in versions]
+                json.dump(leafdata, jsonout)
+                
         leafhome.utime((time.time(), time.time()))
         return leafhome
 
@@ -134,19 +158,44 @@ class IndexManager(object):
             raise 
         raise RuntimeError("Unrecognized extension: %s" %path)
 
-    def update_by_request(self, request):
-        request.registry.notify(event.IndexUpdate(request.index_data_path, self))
-
-    def data_from_path(self, datafile):
+    @staticmethod
+    def data_from_path(datafile):
         datafile = path(datafile)
         if datafile.exists():
             with open(datafile) as stream:
                 return json.load(stream)
+        logger.error("No datafile found for %s", datafile)
         return {}
 
-    def move_on_error(self, exc, path):
-        logger.error(traceback.format_exc())
-        path.rename(self.error_folder)
+
+
+    def write_datafile(self, **data):
+        with self.index_data_lock:
+            with open(self.datafile_path) as root:
+                data = json.load(root)
+                data.update(data)
+            with open(self.datafile_path, 'w') as root:
+                json.dump(data, root)        
+        
+    def register_archive(self, arch, registry=None):
+        """
+        Adds an archive to the master data store (index.json)
+        """
+        pkgdata = self.arch_to_add_map(arch)
+        md5 = arch.read_md5().encode('hex')
+
+        self.write_datafile(**{md5:pkgdata})
+        return pkgdata, md5
+
+    def arch_to_add_map(self, arch):
+        start = time.time()
+        pkgi = self.pkginfo_from_file(arch, self.move_on_error)
+        if pkgi:
+            pkgdata = dict(name=pkgi.name,
+                           version=pkgi.version,
+                           filename=str(arch.name),
+                           added=start)
+            return pkgdata
 
     def update_data(self, datafile):
         start = time.time()
@@ -157,22 +206,16 @@ class IndexManager(object):
                 md5 = arch.read_md5().encode('hex')
                 if not arch.exists():
                     del data[md5]
-
-                if md5 not in data:
-                    #@@ fire new package event...
-                    logger.info("New package: %s %s" %(str(arch), md5))
-                    pkgi = self.pkginfo_from_file(arch, self.move_on_error)
-                    if pkgi:
-                        pkgdata = dict(name=pkgi.name,
-                                       version=pkgi.version,
-                                       filename=str(arch.name),
-                                       added=start)
+                    
+                if not md5 in data:
+                    pkgdata = self.arch_to_add_map(arch)
+                    if pkgdata:
                         data[md5] = pkgdata
                         new.append(pkgdata)
 
             pkgs = len(set(x['name'] for x in data.values()))
             logger.info("Inspected %s versions for %s packages" %(len(data), pkgs))
-            with open(datafile, 'w') as root:
+            with open(self.datafile_path, 'w') as root:
                 json.dump(data, root)
                 
         elapsed = time.time() - start
@@ -231,6 +274,8 @@ def bulk_update_index_at_start(event):
     return pkg_added
 
 
+
+
 class EnvFactory(object):
     env_class = jinja2.Environment
     def __init__(self, config):
@@ -262,3 +307,6 @@ class EnvFactory(object):
         choices = [jinja2.PackageLoader('cheeseprism', 'templates/index')]
         if config: [choices.insert(0, loader) for loader in factory.loaders]
         return factory.env_class(loader=jinja2.ChoiceLoader(choices))
+
+
+
