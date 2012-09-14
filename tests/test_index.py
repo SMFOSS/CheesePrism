@@ -10,15 +10,23 @@ import textwrap
 import unittest
 
 logger = logging.getLogger(__name__)
-
 here = path(__file__).parent
+
+def test_data_from_path():
+    from cheeseprism import index
+    datafile = here / 'index.json'
+    assert index.IndexManager.data_from_path(datafile) == {}
+    datafile.write_text("{}")
+    assert index.IndexManager.data_from_path(datafile) == {}
+
 
 class IndexTestCase(unittest.TestCase):
     counter = count()
     index_parent = "egg:CheesePrism#tests/test-indexes"
 
     tdir = path(resource_spec('egg:CheesePrism#tests'))
-
+    dummy = here / "dummypackage/dist/dummypackage-0.0dev.tar.gz"
+    
     @classmethod
     def get_base(cls):
         return path(resource_spec(cls.index_parent))
@@ -33,13 +41,14 @@ class IndexTestCase(unittest.TestCase):
         return index.IndexManager(index_path)
 
     def setUp(self):
+        #@@ factor out im creation
         self.im = self.make_one()
-        dummy = path(__file__).parent / "dummypackage/dist/dummypackage-0.0dev.tar.gz"
-        dummy.copy(self.im.path)
-        self.dummypath = self.im.path / dummy.name
+        self.dummy.copy(self.im.path)
+        self.dummypath = self.im.path / self.dummy.name
 
-    def test_data_from_path(self):
-        assert self.im.data_from_path(here / 'index.json') == {}
+    def test_add_archive(self):
+        # self.im.add_archive
+        pass
 
     def test_regenerate_index(self):
         home, leaves = self.im.regenerate_all()
@@ -48,8 +57,10 @@ class IndexTestCase(unittest.TestCase):
         index_name = u'%s-test-index' %self.count
         expected = [(index_name, u'dummypackage'),
                     (u'dummypackage', u'index.html'),
+                    (path(u'dummypackage'), path(u'index.json')),                    
                     (index_name, u'dummypackage-0.0dev.tar.gz'),
                     (index_name, u'index.html')]
+
         assert len(leaves) == 1
         assert leaves[0].exists()
         assert leaves[0].name == 'index.html'
@@ -96,13 +107,13 @@ class IndexTestCase(unittest.TestCase):
         from cheeseprism.index import notify_packages_added
         pkg = dict(name='pkg', version='0.1'); pkgs = pkg,
         index = Mock(name='index')
-        getreg.return_value = Mock(name='registry')                
+        reg = getreg.return_value = Mock(name='registry')                
         out = list(notify_packages_added(index, pkgs))
 
         assert len(out) == 1
         assert getreg.called
-        assert 'notify' in getreg.return_value._children
-        (event,), _ = getreg.return_value._children['notify'].call_args
+        assert reg.notify.called
+        (event,), _ = reg.notify.call_args
         assert event.im is index
         assert event.version == '0.1'
         assert event.name == 'pkg'
@@ -112,26 +123,7 @@ class IndexTestCase(unittest.TestCase):
         from cheeseprism.index import notify_packages_added
         next(notify_packages_added(Mock(name='index'), []))
 
-    @patch('pkginfo.bdist.BDist', new=Mock(return_value=True))
-    def test_pkginfo_from_file_egg(self):
-        from cheeseprism.index import IndexManager
-        assert IndexManager.pkginfo_from_file('blah.egg') is True
 
-    @patch('pkginfo.sdist.SDist', new=Mock(return_value=True))
-    def test_pkginfo_from_file_sdist(self):
-        from cheeseprism.index import IndexManager
-        for ext in ('.gz','.tgz', '.bz2', '.zip'):
-            assert IndexManager.pkginfo_from_file('blah.%s' %ext) is True
-
-    @raises(RuntimeError)
-    def test_pkginfo_from_bad_ext(self):
-        from cheeseprism.index import IndexManager
-        IndexManager.pkginfo_from_file('adfasdkfha.adkfhalsdk')
-
-    @raises(RuntimeError)
-    def test_pkginfo_from_no_ext(self):
-        from cheeseprism.index import IndexManager
-        IndexManager.pkginfo_from_file('adfasdkfha')        
 
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
@@ -140,6 +132,62 @@ class IndexTestCase(unittest.TestCase):
         logger.info(pprint([x.rmtree() for x in dirs]))
 
 
+class ClassMethods(unittest.TestCase):
+
+    @patch('pkginfo.bdist.BDist', new=Mock(return_value=True))
+    def test_pkginfo_from_file_egg(self):
+        """
+        .pkginfo_from_file: bdist
+        """                
+        from cheeseprism.index import IndexManager
+        assert IndexManager.pkginfo_from_file('blah.egg') is True
+
+    @patch('pkginfo.sdist.SDist', new=Mock(return_value=True))
+    def test_pkginfo_from_file_sdist(self):
+        """
+        .pkginfo_from_file: sdist
+        """        
+        from cheeseprism.index import IndexManager
+        for ext in ('.gz','.tgz', '.bz2', '.zip'):
+            assert IndexManager.pkginfo_from_file('blah.%s' %ext) is True
+
+    @raises(RuntimeError)
+    def test_pkginfo_from_bad_ext(self):
+        """
+        .pkginfo_from_file with unrecognized extension
+        """
+        from cheeseprism.index import IndexManager
+        IndexManager.pkginfo_from_file('adfasdkfha.adkfhalsdk')
+
+    @raises(RuntimeError)
+    def test_pkginfo_from_no_ext(self):
+        """
+        .pkginfo_from_file with no extension
+        """
+        from cheeseprism.index import IndexManager
+        IndexManager.pkginfo_from_file('adfasdkfha')        
+    
+    def test_pkginfo_from_file_exc_and_handler(self):
+        """
+        .pkginfo_from_file with exception and handler
+        """
+        from cheeseprism.index import IndexManager
+        exc = Exception("BOOM")
+        with patch('pkginfo.bdist.BDist', side_effect=exc):
+            eh = Mock(name='error_handler')
+            IndexManager.pkginfo_from_file('bad.egg', handle_error=eh)
+        assert eh.called
+        assert eh.call_args[0] == (exc, 'bad.egg'), eh.call_args[0]
+
+    @raises(ValueError)
+    def test_pkginfo_from_file_exc(self):
+        """
+        .pkginfo_from_file with exception and no handler
+        """
+        from cheeseprism.index import IndexManager
+        exc = ValueError("BOOM")
+        with patch('pkginfo.bdist.BDist', side_effect=exc):
+            IndexManager.pkginfo_from_file('bad.egg')
 
 def test_cleanup():
     assert not IndexTestCase.get_base().dirs()
