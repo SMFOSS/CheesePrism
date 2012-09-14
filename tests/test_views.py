@@ -1,4 +1,5 @@
 from cheeseprism import index
+from contextlib import contextmanager
 from cheeseprism.resources import App
 from mock import Mock
 from mock import patch
@@ -12,6 +13,8 @@ from test_pipext import PipExtBase
 import itertools
 import unittest
 
+here = path(__file__).parent
+
 class CPDummyRequest(testing.DummyRequest):
     test_dir = None
     counter = itertools.count()
@@ -21,6 +24,10 @@ class CPDummyRequest(testing.DummyRequest):
     @property
     def userid(self):
         return 'bob'
+
+    @property
+    def settings(self):
+        return {}
     
     @property
     def file_root(self):
@@ -59,10 +66,10 @@ class DummyResponse(object):
 
 
 class FakeFS(object):
-    def __init__(self, path):
+    def __init__(self, path, body="Some gzip binary"):
         self.filename = path.name
         self.file = Mock()
-        self.file.read.return_value = "Some gzip binary"
+        self.file.read.return_value = body
 
 
 def test_instructions():
@@ -244,13 +251,47 @@ class ViewTests(unittest.TestCase):
         self.config.add_subscriber(test_event_fire)
 
     @patch('path.path.write_bytes')
-    @patch('pkginfo.sdist.SDist')
-    def test_upload(self, sdist, wb):
+    def test_upload(self, wb):
         from cheeseprism.views import upload
         self.setup_event()
         context, request = self.base_cr
         request.method = 'POST'
         request.POST['content'] = FakeFS(path('dummypackage/dist/dummypackage-0.0dev.tar.gz'))
-        res = upload(context, request)
+        with patch('cheeseprism.index.IndexManager.register_archive',
+                   return_value=(dict(name='dummycode', version='0.0dev'), '123')) as aa:
+            res = upload(context, request)
+            assert aa.called
         assert res.headers == {'X-Swalow-Status': 'SUCCESS'}
-        assert 'fired' in self.event_results
+
+    def test_from_requirements_GET(self):
+        from cheeseprism.views import from_requirements
+        context, request = self.base_cr
+        
+
+    def test_from_requirements_POST(self):
+        from cheeseprism.views import from_requirements
+        context, request = self.base_cr
+        flash = request.session.flash = Mock('flash')
+        notify = request.registry.notify = Mock('notify')
+        request.method = 'POST'
+        reqfile = here / 'req-1.txt'
+        request.POST['req_file'] = FakeFS(reqfile, body=reqfile.text())
+        with mock_downloader():
+            out = from_requirements(context, request)
+            assert out
+            assert flash.called
+            assert notify.called
+
+            
+@contextmanager
+def mock_downloader():
+    with patch('cheeseprism.pipext.RequirementDownloader') as dl:
+        dler = dl.return_value = Mock(name='downloader')
+        pkgi, outf = Mock(name='pkginfo'), Mock(name='outfile')
+        outf.filename = 'outfile'
+        pkgi.name = "dummyfile"
+        dler.download_all.return_value = (pkgi, outf),
+        dler.skip = (outf,)
+        dler.errors = ('error',)
+        dl.req_set_from_file.return_value = (dl, Mock(name='finder'))
+        yield dl

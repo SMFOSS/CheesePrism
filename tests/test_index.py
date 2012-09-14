@@ -48,9 +48,35 @@ class IndexTestCase(unittest.TestCase):
         self.dummy.copy(self.im.path)
         self.dummypath = self.im.path / self.dummy.name
 
-    def test_add_archive(self):
-        # self.im.add_archive
-        pass
+    def test_register_archive(self):
+        pkgdata, md5 = self.im.register_archive(self.dummypath)
+        assert md5 == '3ac58d89cb7f7b718bc6d0beae85c282'
+        assert pkgdata
+        
+        idxjson = self.im.data_from_path(self.im.datafile_path)
+        assert md5 in idxjson 
+        assert idxjson[md5] == pkgdata
+
+    def test_write_datafile(self):
+        """
+        create and write archive data to index.json 
+        """
+        data = self.im.write_datafile(hello='computer')
+        assert 'hello' in data
+        assert self.im.datafile_path.exists()
+        assert 'hello' in self.im.data_from_path(self.im.datafile_path)
+
+    def test_write_datafile_w_existing_datafile(self):
+        """
+        write data to an existing datafile
+        """
+        data = self.im.write_datafile(hello='computer')
+        assert self.im.datafile_path.exists()
+
+        data = self.im.write_datafile(hello='operator')
+        assert data['hello'] == 'operator'
+        assert self.im.data_from_path(self.im.datafile_path)['hello'] == 'operator'
+
 
     def test_regenerate_index(self):
         home, leaves = self.im.regenerate_all()

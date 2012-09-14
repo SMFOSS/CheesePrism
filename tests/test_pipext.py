@@ -152,7 +152,7 @@ class TestReqDownloaderHandler(PipExtBase):
     def test_skip(self, download_url):
         rd, req = self.basic_prep(download_url)
         finder = self.mock_finder
-        rd.seen.add(self.link.md5_hash)
+        rd.seen.add(self.link.hash)
         assert rd.handle_requirement(req, finder) is None
 
     @raises(TypeError)
