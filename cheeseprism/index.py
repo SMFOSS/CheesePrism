@@ -59,6 +59,19 @@ class IndexManager(object):
         self.error_folder = self.path / error_folder
         self.move_on_error = partial(self.move_on_error, self.error_folder)
 
+    @classmethod
+    def from_settings(cls, settings):
+        file_root = path(settings['cheeseprism.file_root'])
+        if not file_root.exists():
+            file_root.makedirs()
+
+        urlbase = settings.get('cheeseprism.urlbase', '')
+        abu = settings.get('cheeseprism.archive.urlbase', '..')
+        return cls(settings['cheeseprism.file_root'],
+                   urlbase=urlbase,
+                   arch_baseurl=abu,
+                   template_env=settings['cheeseprism.index_templates'])
+
     @staticmethod
     def move_on_error(error_folder, exc, path):
         logger.error(traceback.format_exc())
@@ -106,9 +119,11 @@ class IndexManager(object):
 
         leafhome = leafdir / indexhtml
         leafjson = leafdir / indexjson
+
+        versions = list(versions)
         title = "%s:%s" %(self.index_data['title'], leafdir.name)
-        tversions = [self.leaf_values(leafdir.name, archive)\
-                     for info, archive in versions]
+        tversions = (self.leaf_values(leafdir.name, archive)\
+                     for info, archive in versions)
 
         text = self.leaf_template\
                .render(package_title=leafdir.name,
@@ -116,10 +131,9 @@ class IndexManager(object):
                        versions=tversions)
 
         leafhome.write_text(text)
-        
         with self.index_data_lock: #@@ more granular locks
             with open(leafjson, 'w') as jsonout:
-                leafdata = [dict(filename=str(path.name),
+                leafdata = [dict(filename=str(fpath.name),
                                  name=dist.name,
                                  version=dist.version,
                                  mtime=fpath.mtime,
@@ -196,7 +210,9 @@ class IndexManager(object):
                            added=start)
             return pkgdata
 
-    def update_data(self, datafile):
+    def update_data(self, datafile=None):
+        if datafile is None:
+            datafile = self.datafile_path
         start = time.time()
         with self.index_data_lock:
             data = self.data_from_path(datafile)
@@ -214,7 +230,7 @@ class IndexManager(object):
 
             pkgs = len(set(x['name'] for x in data.values()))
             logger.info("Inspected %s versions for %s packages" %(len(data), pkgs))
-            with open(self.datafile_path, 'w') as root:
+            with open(datafile, 'w') as root:
                 json.dump(data, root)
                 
         elapsed = time.time() - start
@@ -244,26 +260,12 @@ def notify_packages_added(index, new_pkgs, reg=None):
 
 @subscriber(ApplicationCreated)
 def bulk_update_index_at_start(event):
-    #@@ most of this ought to be encapsulated to a classmethod on
-    #`IndexManager` called `.from_settings`
     reg = event.app.registry
     settings = reg.settings
-    file_root = path(settings['cheeseprism.file_root'])
+    
+    index = IndexManager.from_settings(settings)
 
-    if not file_root.exists():
-        file_root.makedirs()
-
-    datafile = file_root / settings['cheeseprism.data_json']
-
-    template_env = settings['cheeseprism.index_templates']
-    urlbase = settings.get('cheeseprism.urlbase', '')
-    abu = settings.get('cheeseprism.archive.urlbase', '..')
-    index = IndexManager(file_root,
-                         template_env=template_env,
-                         urlbase=urlbase,
-                         arch_baseurl=abu)
-    new_pkgs = index.update_data(datafile)
-
+    new_pkgs = index.update_data()
     pkg_added = list(notify_packages_added(index, new_pkgs, reg))
 
     home_file = index.path / index.root_index_file
