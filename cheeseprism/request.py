@@ -7,9 +7,8 @@ from pyramid.security import unauthenticated_userid
 
 class CPRequest(Request):
     """
-    Custom CheesePrism request object
+    CheesePrism request object
     """
-
     imclass = IndexManager
 
     @reify
@@ -39,7 +38,7 @@ class CPRequest(Request):
 
     @reify
     def index_data_path(self):
-        return self.registry.settings['cheeseprism.data_json']
+        return self.imclass.datafile_path
 
     @reify
     def index_data(self):
