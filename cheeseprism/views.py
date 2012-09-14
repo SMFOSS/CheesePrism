@@ -20,36 +20,33 @@ logger = logging.getLogger(__name__)
 
 _ = TranslationStringFactory('CheesePrism')
 
-
-@view_config(renderer='index.html', context=resources.App)
-def homepage(context, request):
-    return {}
-
-
+ 
 @view_config(name='instructions', renderer='instructions.html', context=resources.App)
 def instructions(context, request):
     return {'page': 'instructions'}
 
 
+@view_config(renderer='index.html', context=resources.App)
 @view_config(name='simple', context=resources.App)
 def upload(context, request):
     """
     The interface for disutils upload
     """
-    if not (request.method == 'POST' and hasattr(request.POST['content'], 'file')):
-        raise RuntimeError('No file attached') 
+    if request.method == 'POST':
+        if not hasattr(request.POST['content'], 'file'):
+            raise RuntimeError('No file attached') 
 
-    fieldstorage = request.POST['content']
-    dest = path(request.file_root) / utils.secure_filename(fieldstorage.filename)
+        fieldstorage = request.POST['content']
+        dest = path(request.file_root) / utils.secure_filename(fieldstorage.filename)
 
-    dest.write_bytes(fieldstorage.file.read())
-    pkgdata, _ = request.index.register_archive(dest, registry=request.registry)
-    request.registry.notify(event.PackageAdded(request.index,
+        dest.write_bytes(fieldstorage.file.read())
+        pkgdata, _ = request.index.register_archive(dest, registry=request.registry)
+        request.registry.notify(event.PackageAdded(request.index,
                                                name=pkgdata['name'],
                                                version=pkgdata['version']))
-    request.response.headers['X-Swalow-Status'] = 'SUCCESS'
-    return request.response
-
+        request.response.headers['X-Swalow-Status'] = 'SUCCESS'
+        return request.response
+    return {}
 
 @view_config(name='find-packages', renderer='find_packages.html', context=resources.App)
 def find_package(context, request):
