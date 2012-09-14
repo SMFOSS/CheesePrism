@@ -9,8 +9,10 @@ import logging
 import textwrap
 import unittest
 
+
 logger = logging.getLogger(__name__)
 here = path(__file__).parent
+
 
 def test_data_from_path():
     from cheeseprism import index
@@ -123,8 +125,6 @@ class IndexTestCase(unittest.TestCase):
         from cheeseprism.index import notify_packages_added
         next(notify_packages_added(Mock(name='index'), []))
 
-
-
     def tearDown(self):
         logger.debug("teardown: %s", self.count)
         dirs = self.base.dirs()
@@ -132,7 +132,14 @@ class IndexTestCase(unittest.TestCase):
         logger.info(pprint([x.rmtree() for x in dirs]))
 
 
-class ClassMethods(unittest.TestCase):
+class ClassOrStaticMethods(unittest.TestCase):
+
+    def test_move_on_error(self):
+        from cheeseprism.index import IndexManager
+        exc, path = Mock(), Mock()
+        IndexManager.move_on_error('errors', exc, path)
+        assert path.rename.called
+        assert path.rename.call_args[0][0] == 'errors'
 
     @patch('pkginfo.bdist.BDist', new=Mock(return_value=True))
     def test_pkginfo_from_file_egg(self):
