@@ -129,7 +129,7 @@ class RequirementDownloader(object):
             self.errors.append(msg)
             return
         
-        if url.md5_hash in self.seen:
+        if url.hash in self.seen:
             logger.debug('Seen: %s', url)
             self.skip.append(url)
             return 
