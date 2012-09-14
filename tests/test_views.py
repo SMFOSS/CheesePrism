@@ -205,7 +205,7 @@ class ViewTests(unittest.TestCase):
         return request
 
     def test_index_view(self):
-        from cheeseprism.views import homepage as index
+        from cheeseprism.views import upload as index
         request = testing.DummyRequest()
         assert index(App(request), request) == {}
 
@@ -238,6 +238,7 @@ class ViewTests(unittest.TestCase):
         from cheeseprism.views import upload
         context, request = self.base_cr
         request.POST['content'] = ''
+        request.method = 'POST'
         upload(context, request)
 
     def setup_event(self):
