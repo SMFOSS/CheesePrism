@@ -4,11 +4,11 @@ Classes, subscribers and functions for dealing with index management
 from cheeseprism import event
 from cheeseprism.desc import template
 from cheeseprism.desc import updict
+from functools import partial
 from path import path
+from pyramid import threadlocal
 from pyramid.events import ApplicationCreated
 from pyramid.events import subscriber
-from pyramid import threadlocal
-from functools import partial
 import jinja2
 import json
 import logging
@@ -20,8 +20,6 @@ import traceback
 
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class IndexManager(object):
@@ -42,11 +40,9 @@ class IndexManager(object):
     datafile_name = "index.json"
     index_data_lock = threading.Lock()
 
-    @staticmethod
-    def move_on_error(error_folder, exc, path):
-        logger.error(traceback.format_exc())
-        path.rename(error_folder)
-    
+    leaf_template = template('leaf.html')
+    home_template = template('home.html')
+
     def __init__(self, index_path, template_env=None, arch_baseurl='/index/', urlbase='',
                  index_data={}, leaf_data={}, error_folder='_errors'):
         self.urlbase = urlbase
@@ -63,9 +59,11 @@ class IndexManager(object):
         self.error_folder = self.path / error_folder
         self.move_on_error = partial(self.move_on_error, self.error_folder)
 
-    leaf_template = template('leaf.html')
-    home_template = template('home.html')
-
+    @staticmethod
+    def move_on_error(error_folder, exc, path):
+        logger.error(traceback.format_exc())
+        path.rename(error_folder)
+    
     @property
     def default_env_factory(self):
         return EnvFactory.from_str
@@ -167,15 +165,16 @@ class IndexManager(object):
         logger.error("No datafile found for %s", datafile)
         return {}
 
-
-
     def write_datafile(self, **data):
         with self.index_data_lock:
-            with open(self.datafile_path) as root:
-                data = json.load(root)
-                data.update(data)
+            if self.datafile_path.exists():
+                newdata = data
+                with open(self.datafile_path) as root:
+                    data = json.load(root)
+                    data.update(newdata)
             with open(self.datafile_path, 'w') as root:
-                json.dump(data, root)        
+                json.dump(data, root)
+            return data
         
     def register_archive(self, arch, registry=None):
         """
@@ -272,8 +271,6 @@ def bulk_update_index_at_start(event):
         items = index.projects_from_archives()
         index.write_index_home(home_file, items)    
     return pkg_added
-
-
 
 
 class EnvFactory(object):
