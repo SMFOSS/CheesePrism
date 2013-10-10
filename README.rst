@@ -1,6 +1,8 @@
 ================
- Cheese Prism
+ Cheese Prism 
 ================
+
+*Note the canonical active version of this project lives at http://github.com/whitmo/CheesePrism*
 
 A simple application for managing a static python package index.  It
 borrows heavily from `BasketWeaver
